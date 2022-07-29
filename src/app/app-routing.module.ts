@@ -1,7 +1,11 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { MainViewComponent } from './main-view/main-view.component';
 
-const routes: Routes = [];
+const routes: Routes = [
+  { path: 'fsd/:userID/:treatment/:task', component: MainViewComponent },
+  { path: '', component: MainViewComponent }
+];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],

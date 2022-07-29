@@ -1,1 +1,188 @@
 /* You can add global styles to this file, and also import other style files */
+
+body{
+  margin-bottom: 0 !important;
+  //margin-top: 0 !important;
+}
+
+li.p-autocomplete-token{
+    max-width: 100% !important;
+    cursor: grab !important;
+    padding: 0.375rem 0.1rem !important;
+  }
+
+.p-splitter-panel{
+    max-height: calc(90vh - 30px);
+    overflow-y: hidden;
+}
+
+.p-inputtext{
+  font-size: 0.8rem !important;
+}
+
+.p-component{
+  font-size: 0.8rem !important;
+}
+
+.p-listbox-item{
+  padding: 0.4rem 0 !important;
+  cursor: grab !important;
+}
+
+.chartButton{
+  height: 5vh;
+  max-height: 100%;
+  width: 20%;
+  margin: 0 5%;
+  background-color: rgb(166, 166, 166);
+}
+
+.p-button{
+  padding: 0.5vh 1vh !important;
+  margin: 0 0.5vh !important;
+}
+
+.p-accordion-header-link{
+  padding: 0px !important;
+  margin-top: 3px !important;
+}
+
+.p-button-text{
+  float: right !important;
+  width: 30px !important;
+  height: 30px !important;
+}
+.p-accordion-content{
+  padding: 0.5rem !important;
+}
+
+.p-multiselect-item{
+  padding: 0.1rem !important;
+}
+
+.p-multiselect{
+  width: 100%;
+}
+
+.p-inputgroup-addon{
+  min-width: 3.5rem !important;
+  padding: 0 !important;
+}
+
+.p-splitter-gutter{
+  background: #c1c1c1 !important;
+}
+
+.p-inputtext{
+  padding: 0 0.3rem !important;
+}
+
+
+
+
+.col-1{
+  width: 10.333% !important;
+}
+
+.col-9{
+  width: 73% !important;
+}
+
+.p-dropdown-trigger{
+  width: fit-content !important;
+}
+
+.p-dropdown-items{
+  padding: 0px !important;
+}
+
+.p-dropdown-item{
+  padding: 0.3rem 0.4rem !important;
+}
+
+.closed{
+  display: none;
+}
+
+.p-fieldset-legend a{
+  padding: 0.25rem !important;
+}
+
+.p-fieldset-content{
+  padding: 0 !important;
+}
+.p-fieldset-toggleable{
+  position: relative !important;
+  top: -4vh !important;
+}
+
+.active{
+  background: blue !important;
+}
+
+
+.p-togglebutton.p-button{
+  background: none !important;
+  border:none !important;
+}
+.p-togglebutton.p-button.p-highlight{
+  color: black !important;
+
+}
+
+.p-button-icon-left{
+  color: blue !important;
+}
+
+.p-button.p-button-icon-only{
+  width: fit-content !important;
+}
+
+.p-card-body{
+  padding: 0 !important;
+}
+
+.p-card-content{
+  padding: 0.75rem 0 !important;
+}
+
+
+.p-badge.active{
+  height: 1rem !important;
+  width: 1rem !important;
+  position: absolute !important;
+  margin: 0 !important;
+  background: #a6192e !important;
+  transform: translate(-40%, 40%) !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+
+}
+
+.p-badge.comparison{
+  height: 1rem !important;
+  width: 1rem !important;
+  position: absolute !important;
+  margin: 0 !important;
+  background: #a5a5a5 !important;
+  transform: translate(-40%, 140%) !important;
+  min-width: 0 !important;
+
+}
+
+
+/*.p-multiselect-panel{
+  width: 150%;
+}*/
+
+
+/* Hide scrollbar for Chrome, Safari and Opera as well as   Hide scrollbar for IE, Edge and Firefox 
+.grid::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .grid {
+    -ms-overflow-style: none;  
+    scrollbar-width: none;  
+  }
+  */
