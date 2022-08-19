@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { forEach } from 'vega-lite/build/src/encoding';
 
 @Injectable()
 export class InfoVisInteractionService {
@@ -6,10 +7,122 @@ export class InfoVisInteractionService {
   constructor() { }
 
 
-  async processAction(that, action){
-    if(action["Add"]["Visualization"].length > 0){
-      await this.changeVisualization(that, action["Add"]["Visualization"][0], true)
-    }
+  async processAction(that, visualizationState, action, unique) {
+
+    Object.keys(action).forEach(key => {
+      if (key == "VISUALIZATION") {
+        if (action["VISUALIZATION"]["ADD"].length > 0) {
+          this.changeVisualization(that, visualizationState, action["VISUALIZATION"]["ADD"][0], unique)
+        }
+      }
+      else if (key == "Aggregate") {
+        for (var element in action["Aggregate"]["ADD"]) {
+          if (action["Aggregate"]["ADD"][element]["KEY"] == "ALL") {
+            for (var index in visualizationState["Values"]) {
+              this.changeAggregate(that, visualizationState, visualizationState["Values"][index], action["Aggregate"]["ADD"][element]["ID"], false)
+            }
+            if(unique && that.correctionMode){
+              that.training.adaptActionList(that, visualizationState, "x-Axis", "ADD", [{"KEY": "ALL", "ID": action["Aggregate"]["ADD"][element]["ID"]}])
+            }
+          }
+          else {
+            this.changeAggregate(that, visualizationState, action["Aggregate"]["ADD"][element]["KEY"], action["Aggregate"]["ADD"][element]["ID"], unique)
+          }
+        }
+
+      }
+      else if (key == "x-Axis") {
+        console.log(key)
+        if (action["x-Axis"]["REMOVE"].includes("ALL")) {
+          this.removeXAxis(that, visualizationState, action["x-Axis"]["REMOVE"], unique)
+        }
+        if (!action["x-Axis"]["ADD"].includes("ALL")) {
+          this.addXAxis(that, visualizationState, action["x-Axis"]["ADD"], unique)
+        }
+        if (!action["x-Axis"]["REMOVE"].includes("ALL")) {
+          this.removeXAxis(that, visualizationState, action["x-Axis"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "Values") {
+        console.log(key)
+        if (action["Values"]["REMOVE"].includes("ALL")) {
+          this.removeValues(that, visualizationState, action["Values"]["REMOVE"], unique)
+        }
+        if (!action["Values"]["ADD"].includes("ALL")) {
+          this.addValues(that, visualizationState, action["Values"]["ADD"], unique)
+        }
+        if (!action["Values"]["REMOVE"].includes("ALL")) {
+          this.removeValues(that, visualizationState, action["Values"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "Color") {
+        console.log(key)
+        if (action["Color"]["REMOVE"].includes("ALL")) {
+          this.removeLegends(that, visualizationState, action["Color"]["REMOVE"], unique)
+        }
+        if (!action["Color"]["ADD"].includes("ALL")) {
+          this.addLegends(that, visualizationState, action["Color"]["ADD"], unique)
+        }
+        if (!action["Color"]["REMOVE"].includes("ALL")) {
+          this.removeLegends(that, visualizationState, action["Color"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "Highlight") {
+        console.log(key)
+        if (action["Highlight"]["ADD"].includes("ALL")) {
+          this.addAxisHighlight(that, visualizationState, action["Highlight"]["ADD"], unique)
+        }
+        if (action["Highlight"]["REMOVE"].includes("ALL")) {
+          this.removeAxisHighlight(that, visualizationState, action["Highlight"]["REMOVE"], unique)
+        }
+        if (!action["Highlight"]["ADD"].includes("ALL")) {
+          this.addAxisHighlight(that, visualizationState, action["Highlight"]["ADD"], unique)
+        }
+        if (!action["Highlight"]["REMOVE"].includes("ALL")) {
+          this.removeAxisHighlight(that, visualizationState, action["Highlight"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "ColorHighlight") {
+        console.log(key)
+        if (action["ColorHighlight"]["ADD"].includes("ALL")) {
+          this.addLegendHighlight(that, visualizationState, action["ColorHighlight"]["ADD"], unique)
+        }
+        if (action["ColorHighlight"]["REMOVE"].includes("ALL")) {
+          this.removeLegendHighlight(that, visualizationState, action["ColorHighlight"]["REMOVE"], unique)
+        }
+        if (!action["ColorHighlight"]["ADD"].includes("ALL")) {
+          this.addLegendHighlight(that, visualizationState, action["ColorHighlight"]["ADD"], unique)
+        }
+        if (!action["ColorHighlight"]["REMOVE"].includes("ALL")) {
+          this.removeLegendHighlight(that, visualizationState, action["ColorHighlight"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "Filter") {
+        console.log(key)
+        if (action["Filter"]["ADD"].includes("ALL")) {
+          this.openingFilters(that, visualizationState, action["Filter"]["ADD"], unique)
+        }
+        if (action["Filter"]["REMOVE"].includes("ALL")) {
+          this.removeFilters(that, visualizationState, action["Filter"]["REMOVE"], unique)
+        }
+        if (!action["Filter"]["ADD"].includes("ALL")) {
+          this.openingFilters(that, visualizationState, action["Filter"]["ADD"], unique)
+        }
+        if (!action["Filter"]["REMOVE"].includes("ALL")) {
+          this.removeFilters(that, visualizationState, action["Filter"]["REMOVE"], unique)
+        }
+      }
+      else if (key == "FilterN") {
+        this.changeNumFilter(that, visualizationState, action["FilterN"]["ADD"], "ADD", unique)
+        this.changeNumFilter(that, visualizationState, action["FilterN"]["REMOVE"], "REMOVE", unique)
+      }
+      else if (key == "FilterC") {
+        this.addCatFilter(that, visualizationState, action["FilterC"]["ADD"].filter(element => element["ID"].includes("ALL")), unique)
+        this.removeCatFilter(that, visualizationState, action["FilterC"]["REMOVE"].filter(element => element["ID"].includes("ALL")), unique)
+        this.addCatFilter(that, visualizationState, action["FilterC"]["ADD"].filter(element => !element["ID"].includes("ALL")), unique)
+        this.removeCatFilter(that, visualizationState, action["FilterC"]["REMOVE"].filter(element => !element["ID"].includes("ALL")), unique)
+      }
+    })
 
   }
 
@@ -22,83 +135,117 @@ export class InfoVisInteractionService {
   /**
    * Change Visualization
    */
-  changeVisualization(that: any, target: string, unqiue: boolean) {
+  changeVisualization(that: any, visualizationState: any, target: string, unique: boolean) {
+    
+    visualizationState["VISUALIZATION"] = target;
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "VISUALIZATION", "ADD", target)
+    
     var current = document.getElementsByClassName("p-button-raised p-button-secondary active");
     if (current.length > 0) {
       current[0].className = current[0].className.replace(" active", "");
     }
     document.getElementById(target).childNodes[0]["className"] += " active";
-
-    that.visCanvas.chart = target;
+  }
   }
 
+
+  
+
+  /**
+   * Change Aggregate
+   */
+
+   changeAggregate(that: any, visualizationState: any, dataField: string, aggregate: string, unique: boolean) {
+
+
+
+    visualizationState['Aggregate'][dataField] = aggregate
+
+
+    for (var i = 0; i < Object.keys(that.visCanvas.maxList[dataField]).length; i++) {
+      if (that.visCanvas.maxList[dataField][Object.keys(that.visCanvas.maxList[dataField])[i]] == visualizationState['FilterN'][dataField][1]) {
+        visualizationState['FilterN'][dataField][1] = that.visCanvas.maxList[dataField][aggregate]
+        break;
+      }
+    }
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Aggregate", "ADD", [{"KEY": dataField, "ID": aggregate}])
+    }
+  }
 
   /**
    * Change x-Axis
    */
 
-  addXAxis(that: any, dataFields: string[], unqiue: boolean) {
+  addXAxis(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
+
 
     //remove previous xAxis
-    this.removeXAxis(that, that.visCanvas.xAxis, false)
+    this.removeXAxis(that, visualizationState, visualizationState['x-Axis'], false)
 
     dataFields.forEach((dataField: string) => {
-      if (that.visCanvas.xAxis.includes(dataField)) {
-        this.removeXAxis(that, [dataField], false)
+      if (visualizationState['x-Axis'].includes(dataField)) {
+        this.removeXAxis(that, visualizationState, [dataField], false)
       }
-      else if (that.visCanvas.values.includes(dataField)) {
-        this.removeValues(that, [dataField], false)
-        document.getElementById("valueConstraint").innerText = "Values (" + that.visCanvas.values.length + "/2)"
+      else if (visualizationState["Values"].includes(dataField)) {
+        this.removeValues(that, visualizationState, [dataField], false)
 
       }
-      else if (that.visCanvas.legend.includes(dataField)) {
-        this.removeLegends(that, [dataField], false)
-        document.getElementById("legendConstraint").innerText = "Color (" + that.visCanvas.legend.length + "/1)"
+      else if (visualizationState['Color'].includes(dataField)) {
+        this.removeLegends(that, visualizationState, [dataField], false)
 
       }
     })
 
     if (dataFields.length > 0) {
-      that.visCanvas.xAxis = [dataFields[0]]
+      visualizationState['x-Axis'] = [dataFields[0]]
 
-      that.selectedDataFields.push(dataFields[0])
-      that.selectedDataFields = JSON.parse(JSON.stringify(that.selectedDataFields))
+      visualizationState['Datafields'].push(dataFields[0])
+      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
     }
-    document.getElementById("xAxisConstraint").innerText = "x-Axis (" + that.visCanvas.xAxis.length + "/1)"
 
 
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "x-Axis", "ADD", dataFields)
+    }
   }
 
-  removeXAxis(that: any, dataFields: string[], unqiue: boolean) {
-    var mediateFields = JSON.parse(JSON.stringify(that.visCanvas.xAxis))
-    that.visCanvas.xAxis = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
+  removeXAxis(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
 
-    var mediateAllFields = JSON.parse(JSON.stringify(that.selectedDataFields))
-    that.selectedDataFields = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
 
-    document.getElementById("xAxisConstraint").innerText = "x-Axis (" + that.visCanvas.xAxis.length + "/1)"
+    var mediateFields = JSON.parse(JSON.stringify(visualizationState['x-Axis']))
+    visualizationState['x-Axis'] = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
 
+    var mediateAllFields = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+    visualizationState['Datafields'] = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
+
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "x-Axis", "REMOVE", dataFields)
+    }
   }
 
   /**
    * Change Values
    */
 
-  addValues(that: any, dataFields: string[], unqiue: boolean) {
+  addValues(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
+    
     var nonNumeric = false
     dataFields.forEach((dataField: string) => {
       if (that.visCanvas.dataFieldsConfig[dataField] == "quantitative") {
-        if (that.visCanvas.xAxis.includes(dataField)) {
-          this.removeXAxis(that, [dataField], false)
-          document.getElementById("xAxisConstraint").innerText = "x-Axis (" + that.visCanvas.xAxis.length + "/1)"
+        if (visualizationState['x-Axis'].includes(dataField)) {
+          this.removeXAxis(that, visualizationState, [dataField], false)
 
         }
-        else if (that.visCanvas.values.includes(dataField)) {
-          this.removeValues(that, [dataField], false)
+        else if (visualizationState["Values"].includes(dataField)) {
+          this.removeValues(that, visualizationState, [dataField], false)
         }
-        else if (that.visCanvas.legend.includes(dataField)) {
-          this.removeLegends(that, [dataField], false)
-          document.getElementById("legendConstraint").innerText = "Color (" + that.visCanvas.legend.length + "/1)"
+        else if (visualizationState['Color'].includes(dataField)) {
+          this.removeLegends(that, visualizationState, [dataField], false)
 
         }
       }
@@ -106,14 +253,14 @@ export class InfoVisInteractionService {
 
     for (var i = 0; i < dataFields.length; i++) {
       if (that.visCanvas.dataFieldsConfig[dataFields[i]] == "quantitative") {
-        if (that.visCanvas.values.length >= 2) {
-          this.removeValues(that, [that.visCanvas.values[0]], false)
+        if (visualizationState["Values"].length >= 2) {
+          this.removeValues(that, visualizationState, [visualizationState["Values"][0]], false)
         }
 
-        that.visCanvas.values.push(dataFields[i])
-        that.visCanvas.values = JSON.parse(JSON.stringify(that.visCanvas.values))
-        that.selectedDataFields.push(dataFields[i])
-        that.selectedDataFields = JSON.parse(JSON.stringify(that.selectedDataFields))
+        visualizationState["Values"].push(dataFields[i])
+        visualizationState["Values"] = JSON.parse(JSON.stringify(visualizationState["Values"]))
+        visualizationState['Datafields'].push(dataFields[i])
+        visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
       }
       else {
         nonNumeric = true
@@ -124,72 +271,84 @@ export class InfoVisInteractionService {
       that.showErrorMessage()
     }
 
-    document.getElementById("valueConstraint").innerText = "Values (" + that.visCanvas.values.length + "/2)"
 
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Values", "ADD", dataFields)
+    }
   }
 
-  removeValues(that: any, dataFields: string[], unqiue: boolean) {
-    var mediateFields = JSON.parse(JSON.stringify(that.visCanvas.values))
-    that.visCanvas.values = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
+  removeValues(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
+    
 
-    var mediateAllFields = JSON.parse(JSON.stringify(that.selectedDataFields))
-    that.selectedDataFields = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
+    var mediateFields = JSON.parse(JSON.stringify(visualizationState["Values"]))
+    visualizationState["Values"] = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
 
-    that.visCanvas.selectedHighlightAxis = ""
+    var mediateAllFields = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+    visualizationState['Datafields'] = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
 
-    document.getElementById("valueConstraint").innerText = "Values (" + that.visCanvas.values.length + "/2)"
+    visualizationState['Highlight'] = ""
 
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Values", "REMOVE", dataFields)
+    }
   }
 
   /**
    * Change Legend
    */
 
-  addLegends(that: any, dataFields: string[], unqiue: boolean) {
+  addLegends(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
 
-    this.removeXAxis(that, that.visCanvas.legend, false)
-
+    
     dataFields.forEach((dataField: string) => {
-      if (that.visCanvas.xAxis.includes(dataField)) {
-        this.removeXAxis(that, [dataField], false)
-        document.getElementById("xAxisConstraint").innerText = "x-Axis (" + that.visCanvas.xAxis.length + "/1)"
+      if (visualizationState['x-Axis'].includes(dataField)) {
+        this.removeXAxis(that, visualizationState, [dataField], false)
 
       }
-      else if (that.visCanvas.values.includes(dataField)) {
-        this.removeValues(that, [dataField], false)
-        document.getElementById("valueConstraint").innerText = "Values (" + that.visCanvas.values.length + "/2)"
+      else if (visualizationState["Values"].includes(dataField)) {
+        this.removeValues(that, visualizationState, [dataField], false)
 
-      }
-      else if (that.visCanvas.legend.includes(dataField)) {
-        this.removeLegends(that, [dataField], false)
       }
     })
 
 
     if (dataFields.length > 0) {
-      that.visCanvas.legend = [dataFields[0]]
+      visualizationState['Color'] = [dataFields[0]]
 
-      that.selectedDataFields.push(dataFields[0])
-      that.selectedDataFields = JSON.parse(JSON.stringify(that.selectedDataFields))
+      if (!visualizationState['Datafields'].includes(dataFields[0])) {
+        visualizationState['Datafields'].push(dataFields[0])
 
-      that.highlightedFields = { [that.visCanvas.legend[0]]: that.visCanvas.filterDictionary[that.visCanvas.legend[0]] }
+        visualizationState['ColorHighlight'] = { [visualizationState['Color'][0]]: visualizationState['FilterC'][visualizationState['Color'][0]] }
+
+      }
+      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+
     }
 
-    document.getElementById("legendConstraint").innerText = "Color (" + that.visCanvas.legend.length + "/1)"
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Color", "ADD", dataFields)
+    }
 
   }
 
-  removeLegends(that: any, dataFields: string[], unqiue: boolean) {
-    var mediateFields = JSON.parse(JSON.stringify(that.visCanvas.legend))
-    that.visCanvas.legend = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
+  removeLegends(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
 
-    var mediateAllFields = JSON.parse(JSON.stringify(that.selectedDataFields))
-    that.selectedDataFields = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
+   
 
-    that.visCanvas.highlightedFields = {}
+    var mediateFields = JSON.parse(JSON.stringify(visualizationState['Color']))
+    visualizationState['Color'] = mediateFields.filter((datafield: any) => !dataFields.includes(datafield))
 
-    document.getElementById("legendConstraint").innerText = "Color (" + that.visCanvas.legend.length + "/1)"
+    var mediateAllFields = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+    visualizationState['Datafields'] = mediateAllFields.filter((datafield: any) => !dataFields.includes(datafield))
 
+    visualizationState['ColorHighlight'] = {}
+
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Color", "REMOVE", dataFields)
+    }
   }
 
 
@@ -199,85 +358,136 @@ export class InfoVisInteractionService {
    * Change Filter
    */
 
-  removeFilters(that: any, dataFields: string[], unqiue: boolean) {
+  removeFilters(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
+    if (dataFields.includes("ALL")) {
+      dataFields = that.visCanvas.dataFields
+    }
+
     dataFields.forEach(element => {
-      if (document.getElementById("Filter-" + element)!["className"] != "col-12 closed") {
-        document.getElementById("Filter-" + element)!["className"] += " closed";
-      }
+      visualizationState['Filter'] = visualizationState['Filter'].filter(filter => filter != element)
+
       if (that.visCanvas.dataFieldsConfig[element] == "quantitative") {
-        that.visCanvas.filterNumber[element][1] = that.visCanvas.maxList[element][that.visCanvas.selectedAggregate[element]]
+        visualizationState['FilterN'][element][1] = that.visCanvas.maxList[element][visualizationState['Aggregate'][element]]
       }
       else {
-        that.visCanvas.filterDictionary[element] = []
-        that.visCanvas.optionDictionary[element].forEach((item: { [x: string]: any; }) => that.visCanvas.filterDictionary[element].push(item["value"]))
+        visualizationState['FilterC'][element] = []
+        that.visCanvas.optionDictionary[element].forEach((item: { [x: string]: any; }) => visualizationState['FilterC'][element].push(item["value"]))
       }
     })
-  }
 
-  openingFilters(that: any, dataFields: string[], unqiue: boolean) {
-    dataFields.forEach(element => {
-      document.getElementById("AddingFilters")!.parentNode!.insertBefore(document.getElementById("Filter-" + element)!, document.getElementById("AddingFilters")!.nextSibling)
-      document.getElementById("Filter-" + element)!["className"] = "col-12";
-    })
-  }
-
-  changeNumFilter(that: any, filters: any[], unqiue: boolean) {
-    filters.forEach(element => {
-      var target = Object.keys(element)[0]
-      var range = element[target]
-
-      if (range[0] == "lower") {
-        range[0] = 0
-      }
-      if (range[1] == "upper") {
-        range[1] = that.visCanvas.maxList[target][that.visCanvas.selectedAggregate[target]]
-      }
-      that.visCanvas.filterNumber[target] = range
-    })
-  }
-
-  addCatFilter(that: any, filters: any[], unqiue: boolean) {
-    filters.forEach(element => {
-      var target = Object.keys(element)[0]
-      if (element[target].includes("ALL")) {
-        that.visCanvas.optionDictionary[target].forEach(item => that.visCanvas.filterDictionary[target].push(item["value"]))
-      }
-      else {
-        that.visCanvas.filterDictionary[target] = that.visCanvas.filterDictionary[target].concat(element[target])
-      }
-    })
-  }
-
-
-  removeCatFilter(that: any, filters: any[], unqiue: boolean) {
-    filters.forEach(element => {
-      var target = Object.keys(element)[0]
-      if (element[target].includes("ALL")) {
-        that.visCanvas.filterDictionary[target] = []
-      }
-      else {
-        that.visCanvas.filterDictionary[target] = that.visCanvas.filterDictionary[target].filter(item => !element[target].includes(item))
-      }
-    })
-  }
-
-
-
-  /**
-   * Change Aggregate
-   */
-
-  changeAggregate(that: any, dataField: string, aggregate: string, unqiue: boolean) {
-    that.visCanvas.selectedAggregate[dataField] = aggregate
-
-
-    for (var i = 0; i < Object.keys(that.visCanvas.maxList[dataField]).length; i++) {
-      if (that.visCanvas.maxList[dataField][Object.keys(that.visCanvas.maxList[dataField])[i]] == that.visCanvas.filterNumber[dataField][1]) {
-        that.visCanvas.filterNumber[dataField][1] = that.visCanvas.maxList[dataField][aggregate]
-        break;
-      }
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Filter", "REMOVE", dataFields)
     }
   }
+
+  openingFilters(that: any, visualizationState: any, dataFields: string[], unique: boolean) {
+    if (dataFields.includes("ALL")) {
+      dataFields = that.visCanvas.dataFields
+    }
+
+    dataFields.forEach(element => {
+      visualizationState['Filter'].unshift(element)
+      visualizationState['Filter']= [...new Set(visualizationState['Filter'])];
+    })
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Filter", "ADD", dataFields)
+    }
+  }
+
+  changeNumFilter(that: any, visualizationState: any, filters: any[], verb: string, unique: boolean) {
+    filters.forEach(element => {
+      var target = element["Filter"]
+
+      if(!visualizationState["Filter"].includes(target)){
+        this.openingFilters(that, visualizationState, [target], false)
+      }
+      var range = visualizationState['FilterN'][target]
+
+      if(verb == "ADD"){
+        if (typeof (element["GT"]) != "undefined" && typeof (element["LT"]) != "undefined") {
+          this.changeActiveFilter(that, visualizationState, target, 0, true, false)
+          this.changeActiveFilter(that, visualizationState, target, 1, true, false)
+
+          range = [parseInt(element["GT"]) , parseInt(element["LT"]) ]
+        }
+        else if(typeof (element["GT"]) != "undefined"){
+          this.changeActiveFilter(that, visualizationState, target, 0, true, false)
+          range = [parseInt(element["GT"]), that.visCanvas.maxList[target][visualizationState['Aggregate'][target]]]
+
+        }
+        else if(typeof (element["LT"]) != "undefined"){
+          this.changeActiveFilter(that, visualizationState, target, 1, true, false)
+          range = [0 , parseInt(element["LT"])]
+        }
+      }
+      else if(verb == "REMOVE"){
+        if (typeof (element["GT"]) != "undefined" && typeof (element["LT"]) != "undefined") {
+          this.changeActiveFilter(that, visualizationState, target, 0, true, false)
+          this.changeActiveFilter(that, visualizationState, target, 1, true, false)
+
+          range = [parseInt(element["LT"]), parseInt(element["GT"])]
+        }
+        else if(typeof (element["GT"]) != "undefined"){
+          this.changeActiveFilter(that, visualizationState, target, 1, true, false)
+          range[1] = parseInt(element["GT"])
+
+        }
+        else if(typeof (element["LT"]) != "undefined"){
+          this.changeActiveFilter(that, visualizationState, target, 0, true, false)
+          range[0] = parseInt(element["LT"])
+        }
+      }
+
+      visualizationState['FilterN'][target] = range
+
+      if(unique && that.correctionMode){
+        that.training.adaptActionList(that, visualizationState, "FilterN", verb, element)
+      }
+    })
+  }
+
+  addCatFilter(that: any, visualizationState: any, filters: any[], unique: boolean) {
+    filters.forEach(element => {
+      var target = element["KEY"]
+      this.openingFilters(that, visualizationState, [target], false)
+
+      if (element["ID"].includes("ALL")) {
+        that.visCanvas.optionDictionary[target].forEach(item => visualizationState['FilterC'][target].push(item["value"]))
+        visualizationState['FilterC'][target] = [...new Set(visualizationState['FilterC'][target])];
+      }
+      else {
+        visualizationState['FilterC'][target] = visualizationState['FilterC'][target].concat(element["ID"])
+      }
+
+      if(unique && that.correctionMode){
+        that.training.adaptActionList(that, visualizationState, "FilterC", "ADD", element)
+      }
+
+    })
+  }
+
+
+  removeCatFilter(that: any, visualizationState: any, filters: any[], unique: boolean) {
+    filters.forEach(element => {
+      var target = element["KEY"]
+
+      this.openingFilters(that, visualizationState, [target], false)
+
+      if (element["ID"].includes("ALL")) {
+        visualizationState['FilterC'][target] = []
+      }
+      else {
+        visualizationState['FilterC'][target] = visualizationState['FilterC'][target].filter(item => !element["ID"].includes(item))
+      }
+
+      if(unique && that.correctionMode){
+        that.training.adaptActionList(that, visualizationState, "FilterC", "REMOVE", element)
+      }
+    })
+  }
+
+
 
 
 
@@ -285,21 +495,25 @@ export class InfoVisInteractionService {
    * ChangeActiveFilter
    */
 
-  changeActiveFilter(that: any, dataField: string, boundary: any, value: boolean, unqiue: boolean) {
+  changeActiveFilter(that: any, visualizationState: any, dataField: string, boundary: any, value: boolean, unique: boolean) {
+    var visibility = visualizationState['FilterNActive'][dataField]
 
     if (value) {
-      document.getElementById(boundary + "-" + dataField)!["style"]["display"] = "inline-flex";
+      visibility[boundary] = true
     }
     else {
-      document.getElementById(boundary + "-" + dataField)!["style"]["display"] = "none";
+      visibility[boundary] = false
+
       if (boundary == 0) {
-        that.visCanvas.filterNumber[dataField][boundary] = 0
+        visualizationState['FilterN'][dataField][boundary] = 0
       }
       else {
-        that.visCanvas.filterNumber[dataField][boundary] = that.visCanvas.maxList[dataField][that.visCanvas.selectedAggregate[dataField]]
+        visualizationState['FilterN'][dataField][boundary] = that.visCanvas.maxList[dataField][visualizationState['Aggregate'][dataField]]
       }
 
     }
+
+    visualizationState['FilterNActive'][dataField] = visibility
 
 
   }
@@ -308,24 +522,23 @@ export class InfoVisInteractionService {
    * changeAxisHighlight
    */
 
-  addAxisHighlight(that: any, target: any, unqiue: boolean) {
-
-    Object.keys(that.checkedHighlight).forEach(element => {
-      that.checkedHighlight[element] = false
+  addAxisHighlight(that: any, visualizationState: any, target: any, unique: boolean) {
+    Object.keys(visualizationState['CheckedHighlight']).forEach(element => {
+      visualizationState['CheckedHighlight'][element] = false
     })
 
 
     document.getElementById("Axis-0").style.backgroundColor = ""
     document.getElementById("Axis-1").style.backgroundColor = ""
 
-    if (that.selectedHighlightAxis == target) {
-      that.selectedHighlightAxis = ""
+    if (visualizationState['Highlight'] == target || target == "ALL") {
+      visualizationState['Highlight'] = ""
     }
     else {
-      that.selectedHighlightAxis = target
-      that.checkedHighlight[target] = true
+      visualizationState['Highlight'] = target
+      visualizationState['CheckedHighlight'][target] = true
 
-      if (that.values.indexOf(target) == 0) {
+      if (visualizationState["Values"].indexOf(target) == 0) {
         document.getElementById("Axis-1").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
@@ -334,78 +547,115 @@ export class InfoVisInteractionService {
 
       }
     }
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Highlight", "ADD", [target])
+    }
   }
 
-  removeAxisHighlight(that: any, target: any, unqiue: boolean) {
+  removeAxisHighlight(that: any, visualizationState: any, target: any, unique: boolean) {
 
-    Object.keys(that.checkedHighlight).forEach(element => {
-      that.checkedHighlight[element] = false
+    Object.keys(visualizationState['CheckedHighlight']).forEach(element => {
+      visualizationState['CheckedHighlight'][element] = false
     })
 
     document.getElementById("Axis-0").style.backgroundColor = ""
     document.getElementById("Axis-1").style.backgroundColor = ""
 
-    if (that.selectedHighlightAxis == target) {
-      that.selectedHighlightAxis = ""
+    if (visualizationState['Highlight'] == target || target == "ALL") {
+      visualizationState['Highlight'] = ""
     }
     else {
-      if (that.values.indexOf(target) == 0) {
-        that.selectedHighlightAxis = that.values[1]
-        that.checkedHighlight[that.values[1]] = true
+      if (visualizationState["Values"].indexOf(target) == 0) {
+        visualizationState['Highlight'] = visualizationState["Values"][1]
+        visualizationState['CheckedHighlight'][visualizationState["Values"][1]] = true
         document.getElementById("Axis-0").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
       else {
-        that.selectedHighlightAxis = that.values[0]
-        that.checkedHighlight[that.values[0]] = true
+        visualizationState['Highlight'] = visualizationState["Values"][0]
+        visualizationState['CheckedHighlight'][visualizationState["Values"][0]] = true
         document.getElementById("Axis-1").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
     }
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "Highlight", "REMOVE", [target])
+    }
   }
 
-  addLegendHighlight(that: any, values: string[], unqiue: boolean) {
+  addLegendHighlight(that: any, visualizationState: any, values: string[], unique: boolean) {
+
+    var optionDictionary = that.optionDictionary
+
+    if (typeof (that.optionDictionary) == 'undefined') {
+      optionDictionary = that.visCanvas.optionDictionary
+    }
 
     if (values.includes("ALL")) {
-      var valuesFiltered = []
-      that.optionDictionary[that.legend[0]].forEach(item => {
+      var valuesFiltered: any = []
+      optionDictionary[visualizationState['Color'][0]].forEach(item => {
         valuesFiltered.push(item["value"])
       })
-      that.highlightedFields = { [that.legend[0]]: valuesFiltered }
+      visualizationState['ColorHighlight'] = { [visualizationState['Color'][0]]: valuesFiltered }
     }
     else {
-      var valueFiltered = values.filter(item => {
-        return that.optionDictionary[that.legend[0]].some(element => element["value"] == item)
-      })
+      if(visualizationState['Color'].length > 0){
+        var valueFiltered: any = values.filter(item => {
+          return optionDictionary[visualizationState['Color'][0]].some(element => element["value"] == item)
+        })
+      }
+      else{
+        var valueFiltered: any = []
+      }
+      
+      
 
 
 
-      if (Object.keys(that.highlightedFields).includes(that.legend[0]) && valueFiltered.length > 0) {
-        that.highlightedFields[that.legend[0]] = that.highlightedFields[that.legend[0]].concat(valueFiltered)
+      if (Object.keys(visualizationState['ColorHighlight']).includes(visualizationState['Color'][0]) && valueFiltered.length > 0) {
+        visualizationState['ColorHighlight'][visualizationState['Color'][0]] = visualizationState['ColorHighlight'][visualizationState['Color'][0]].concat(valueFiltered)
       }
 
       if (valueFiltered.length > 0) {
-        that.highlightedFields = { [that.legend[0]]: valueFiltered }
+        visualizationState['ColorHighlight'] = { [visualizationState['Color'][0]]: valueFiltered }
       }
+    }
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "ColorHighlight", "ADD", values)
     }
 
   }
 
-  removeLegendHighlight(that: any, values: string[], unqiue: boolean) {
-    if (values.includes("ALL")) {
-      that.highlightedFields = {}
+  removeLegendHighlight(that: any, visualizationState: any, values: string[], unique: boolean) {
+    var optionDictionary = that.optionDictionary
+
+    if (typeof (that.optionDictionary) == 'undefined') {
+      optionDictionary = that.visCanvas.optionDictionary
     }
-    else if (Object.keys(that.highlightedFields).includes(that.legend[0])) {
-      that.highlightedFields[that.legend[0]] = that.highlightedFields[that.legend[0]].filter(item => !values.includes(item))
+
+    if (values.includes("ALL")) {
+      visualizationState['ColorHighlight'] = {}
+    }
+    else if (Object.keys(visualizationState['ColorHighlight']).includes(visualizationState['Color'][0])) {
+      visualizationState['ColorHighlight'][visualizationState['Color'][0]] = visualizationState['ColorHighlight'][visualizationState['Color'][0]].filter(item => !values.includes(item))
     }
     else {
       var valuesFiltered = []
-      that.optionDictionary[that.legend[0]].forEach(item => {
-        if (!values.includes(item["value"])) {
-          valuesFiltered.push(item["value"])
-        }
-      })
-      that.highlightedFields = { [that.legend[0]]: valuesFiltered }
+      if(visualizationState['Color'].length > 0){
+        optionDictionary[visualizationState['Color'][0]].forEach(item => {
+          if (!values.includes(item["value"])) {
+            valuesFiltered.push(item["value"])
+          }
+        })
+        visualizationState['ColorHighlight'] = { [visualizationState['Color'][0]]: valuesFiltered }
+      }
+      
+    }
+
+    if(unique && that.correctionMode){
+      that.training.adaptActionList(that, visualizationState, "ColorHighlight", "REMOVE", values)
     }
   }
 

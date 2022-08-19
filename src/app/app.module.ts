@@ -8,6 +8,9 @@ import { AppComponent } from './app.component';
 import { MainViewComponent } from './main-view/main-view.component';
 import { VisualizationCanvasComponent } from './visualization-canvas/visualization-canvas.component';
 import { InfoVisInteractionService } from './info-vis-interaction.service';
+import { TrainingService } from './training.service';
+import { NLGeneration } from './NLGeneration.service';
+
 
 //import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -28,6 +31,10 @@ import {FieldsetModule} from 'primeng/fieldset';
 import {CardModule} from 'primeng/card';
 import {CarouselModule} from 'primeng/carousel';
 import {BadgeModule} from 'primeng/badge';
+import {StepsModule} from 'primeng/steps';
+import {TooltipModule} from 'primeng/tooltip';
+import {DialogModule} from 'primeng/dialog';
+
 
 
 
@@ -65,10 +72,13 @@ import { NgxCsvParserModule } from 'ngx-csv-parser';
     CardModule,
     CarouselModule,
     BadgeModule,
+    StepsModule,
+    TooltipModule,
+    DialogModule,
 
     NgxCsvParserModule
   ],
-  providers: [InfoVisInteractionService],
+  providers: [InfoVisInteractionService, TrainingService, NLGeneration],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

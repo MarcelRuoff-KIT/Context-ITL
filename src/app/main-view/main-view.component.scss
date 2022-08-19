@@ -3,7 +3,6 @@
     padding-left: 15px;
     display: flex;
     align-items: center;
-    background-color: #a6192e;
     color: white;
     font-weight: 600;
     margin-left: -8px;
@@ -12,14 +11,13 @@
   }
 
   .smallToolbar {
-    height: 30px;
+    height: 25px;
     padding-left: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: #a6192e;
     color: white;
-    margin-top: 5px;
   }
 
   .textField {
@@ -27,11 +25,37 @@
   }
 
   .solidButton{
-    background: white;
     border-radius: 6px;
     margin-right: 3px !important;
   }
 
   .activeAmbiguity{
-    box-shadow: 5px 9px 10px -3px #a6192e;
+    box-shadow: 7px 5px 10px 0px #a6192e;
   }
+
+  .attribute{
+    font-weight: bold;
+    padding: 0px 3px;
+  }
+
+  .target{
+    font-weight: bold;
+    padding: 0px 3px;
+  }
+
+  select[disabled] {
+    border-color: white;
+    color: black;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-indent: 0.01px;
+    text-overflow: '';
+}
+
+.selectField{
+  display: none
+}
+
+
+select { text-align-last: right; }
+option { direction: rtl; }
