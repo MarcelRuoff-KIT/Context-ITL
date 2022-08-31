@@ -5,48 +5,58 @@ export class TrainingService {
 
   constructor() { }
 
-  public initialVisualizationState : any = {}
-
-  public possibleActions = [{ "Action": {}, "ID":0, "Score": 0 }, { "Action": {}, "ID":0, "Score": 1 }, { "Action": {}, "ID":0, "Score": 2 }, { "Action": {}, "ID":0, "Score": 3 }, { "Action": {}, "ID":0, "Score": 4 }, { "Action": {}, "ID":0, "Score": 5 }]
-  public baseAction = { "Action": {}, "ID":0, "Score": 0 }
-  public selectedAmbiguity = 0
+  public initialVisualizationState: any = {}
+  public initialEntities: any = {}
+  public possibleActions: any = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
+  public baseAction = { "Action": {}, "ID": 0, "Score": 0 }
+  public selectedAmbiguity = 1
   public verbs = ["ADD", "REMOVE"]
 
-  initializeTraining(that, possibleActions) {
-    this.selectedAmbiguity = 1
+
+  async initializeTraining(that, possibleActions) {
+    this.selectedAmbiguity = 0
+
     this.initialVisualizationState = JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState))
 
-    this.possibleActions = possibleActions
-
-    this.possibleActions.unshift(this.baseAction)
+    this.possibleActions = [this.baseAction]
+    that.visCanvas.possibleVisualizationStates.push(JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState)))
+    await that.visCanvas.createVisualization(that, that.visCanvas.currentVisualizationState, "#Ambiguity_0", "small")
 
     var index = 0
-    this.possibleActions.forEach(element => {
+    for(var i = 0; i < possibleActions.length; i++){
+      this.possibleActions.push({ "Action": {}, "ID": possibleActions[i]["ID"], "Score": possibleActions[i]["Score"] })
       that.visCanvas.possibleVisualizationStates.push(JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState)))
-      that.infoVisInteraction.processAction(that, that.visCanvas.possibleVisualizationStates[element["ID"]], element["Action"], false)
+      //element["Action"].forEach(actionEntity => {
+      await that.infoVisInteraction.processAction(that, that.visCanvas.possibleVisualizationStates[possibleActions[i]["ID"]], possibleActions[i]["Action"], true, possibleActions[i]["ID"])
+      //})
 
-      that.visCanvas.createVisualization(that, that.visCanvas.possibleVisualizationStates[element["ID"]], "#Ambiguity_" + element["ID"], "small")
+
+      await that.visCanvas.createVisualization(that, that.visCanvas.possibleVisualizationStates[possibleActions[i]["ID"]], "#Ambiguity_" + possibleActions[i]["ID"], "small")
       index++
-    })
+    }
     if (index > 0) {
+      this.selectedAmbiguity = 1
       that.visCanvas.currentVisualizationState = that.visCanvas.possibleVisualizationStates[1]
-
       that.nlg.initializeUnderstandingDisplay(that, this.possibleActions[1]["Action"])
     }
-
-
-    console.log(that.visCanvas.possibleVisualizationStates)
   }
 
-  createVisualizations(that) {
+  async changeAmbiguityInterpretation(that, actions) {
+    var newState = JSON.parse(JSON.stringify(this.initialVisualizationState))
+    await that.infoVisInteraction.processAction(that, newState, actions["Action"], false, null)
 
+    return newState
   }
 
 
-  adaptActionList(that, visualizationState, key, verb, elements) {
+  async adaptActionList(that, visualizationState, key, verb, elements, ambiguity) {
+
+    if (!ambiguity) {
+      ambiguity = this.selectedAmbiguity
+    }
 
     var integralAction = {}
-    var refinedActionList = this.possibleActions[this.selectedAmbiguity]["Action"]
+    var refinedActionList = this.possibleActions[ambiguity]["Action"]
 
     if (key == "VISUALIZATION") {
       integralAction = refinedActionList[key]
@@ -204,10 +214,10 @@ export class TrainingService {
 
       integralAction[this.verbs.filter(element => element != verb)[0]] = integralAction[this.verbs.filter(element => element != verb)[0]].filter(element => element["KEY"] != id)
 
-      if(current.length > 0 && current[0]["ID"].length > 0){
+      if (current.length > 0 && current[0]["ID"].length > 0) {
         integralAction[verb].push(current[0])
       }
-      if(opposit.length > 0 && opposit[0]["ID"].length > 0){
+      if (opposit.length > 0 && opposit[0]["ID"].length > 0) {
         integralAction[this.verbs.filter(element => element != verb)[0]].push(opposit[0])
       }
 
@@ -217,7 +227,7 @@ export class TrainingService {
 
       refinedActionList[key] = integralAction
     }
-    else if(key == "FilterN"){
+    else if (key == "FilterN") {
       var id = elements["Filter"]
 
       integralAction = refinedActionList[key]
@@ -234,35 +244,35 @@ export class TrainingService {
       var originalLT = that.training.initialVisualizationState["FilterN"][id][1]
       var newLT = that.visCanvas.currentVisualizationState["FilterN"][id][1]
 
-      if(originalGT != newGT && originalLT != newLT){
+      if (originalGT != newGT && originalLT != newLT) {
         verb = "ADD"
-        add = {"Filter": id, "GT": newGT, "LT": newLT}
+        add = { "Filter": id, "GT": newGT, "LT": newLT }
       }
-      else if(originalGT > newGT){
+      else if (originalGT > newGT) {
         verb = "ADD"
-        if(newLT == that.visCanvas.maxList[id][that.visCanvas.currentVisualizationState["Aggregate"][id]]){
-          add = {"Filter": id, "GT": newGT}
+        if (newLT == that.visCanvas.maxList[id][that.visCanvas.currentVisualizationState["Aggregate"][id]]) {
+          add = { "Filter": id, "GT": newGT }
         }
-        else{
-          add = {"Filter": id, "GT": newGT, "LT": newLT}
+        else {
+          add = { "Filter": id, "GT": newGT, "LT": newLT }
         }
       }
-      else if(originalGT < newGT){
+      else if (originalGT < newGT) {
         verb = "REMOVE"
-        remove = {"Filter": id, "LT": newGT}
+        remove = { "Filter": id, "LT": newGT }
       }
-      else if(originalLT < newLT){
+      else if (originalLT < newLT) {
         verb = "ADD"
-        if(newGT == 0){
-          add = {"Filter": id, "LT": newLT}
+        if (newGT == 0) {
+          add = { "Filter": id, "LT": newLT }
         }
-        else{
-          add = {"Filter": id, "GT": newGT, "LT": newLT}
+        else {
+          add = { "Filter": id, "GT": newGT, "LT": newLT }
         }
       }
-      else if(originalLT > newLT){
+      else if (originalLT > newLT) {
         verb = "REMOVE"
-        remove = {"Filter": id, "GT": newLT}
+        remove = { "Filter": id, "GT": newLT }
       }
 
 
@@ -270,23 +280,44 @@ export class TrainingService {
 
       integralAction["REMOVE"] = integralAction["REMOVE"].filter(element => element["Filter"] != id)
 
-      if(add != null){
+      if (add != null) {
         integralAction["ADD"].push(add)
 
       }
-      if(remove != null){
+      if (remove != null) {
         integralAction["REMOVE"].push(remove)
       }
 
-      refinedActionList[key] = {  [this.verbs.filter(element => element != verb)[0]]:integralAction[this.verbs.filter(element => element != verb)[0]], [verb]: integralAction[verb]}
+      refinedActionList[key] = { [this.verbs.filter(element => element != verb)[0]]: integralAction[this.verbs.filter(element => element != verb)[0]], [verb]: integralAction[verb] }
 
-      console.log(refinedActionList[key])
     }
 
 
-    that.nlg.initializeUnderstandingDisplay(that, refinedActionList)
-    that.visCanvas.createVisualization(that, visualizationState, "#Ambiguity_" + this.selectedAmbiguity, "small")
+    await that.nlg.initializeUnderstandingDisplay(that, refinedActionList)
+  }
 
+  removeAction(that, targetElement){
+    if(Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"]).includes( targetElement[0].toString()) ){
+      if(targetElement[1] == "ALL"){
+        this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()] = {}
+      }
+      else{
+        this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()] = []
+      }
+    }
+    else if(["State", "Energy Type", "Party of Governor", "Investment Type", "Year"].includes(targetElement[0].toString())){
+      if(targetElement[1] == "ALL"){
+        this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"].filter(element => element["KEY"] != targetElement[0].toString())
+        this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"].filter(element => element["KEY"] != targetElement[0].toString())
+      }
+      else{
+        this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"][targetElement[1].toString()] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"][targetElement[1].toString()].filter(element => element["KEY"] != targetElement[0].toString())
+      }
+    }
+    else if(targetElement[1] == "FilterN"){
+      this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["ADD"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["ADD"].filter(element => element["Filter"] != targetElement[0].toString())
+      this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["REMOVE"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["REMOVE"].filter(element => element["Filter"] != targetElement[0].toString())
+    }
   }
 
 

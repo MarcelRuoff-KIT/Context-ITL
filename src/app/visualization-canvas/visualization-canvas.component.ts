@@ -47,25 +47,6 @@ export class VisualizationCanvasComponent implements OnInit {
     //"Population": "quantitative"
   }
 
-  public currentVisualizationState: { [characterName: string]: any } = {
-    "VISUALIZATION": "bar",
-    "Datafields": [],
-    "Values": [],
-    "x-Axis": [],
-    "Color": [],
-    "Highlight": "",
-    "CheckedHighlight": { "Projects": false, "Amount": false, },
-    "ColorHighlight": {},
-    "Filter": [],
-    "FilterC": { "Party of Governor": [], "State": [], "Investment Type": [], "Energy Type": [], "Year": [] },
-    "FilterN": { "Amount": [0, 4000000000], "Projects": [0, 21000] },
-    "FilterNActive": { "Amount": [false, false], "Projects": [false, false] },
-    "Aggregate": { "Amount": "sum", "Projects": "sum" }
-  }
-
-  public possibleVisualizationStates = []
-
-
   public optionDictionary: { [characterName: string]: Item[] } = {
     "Party of Governor": [{ label: "Republican", value: "Republican" }, { label: "Democratic", value: "Democratic" }, { label: "Independant", value: "Independant" }],
     "State": [{ label: "Alaska", value: "Alaska" }, { label: "Illinois", value: "Illinois" }, { label: "New York", value: "New York" }, { label: "Maine", value: "Maine" }, { label: "Texas", value: "Texas" }, { label: "North Carolina", value: "North Carolina" }, { label: "Washington", value: "Washington" }, { label: "Iowa", value: "Iowa" }, { label: "New Jersey", value: "New Jersey" }, { label: "Minnesota", value: "Minnesota" }, { label: "Idaho", value: "Idaho" }, { label: "California", value: "California" }, { label: "Wyoming", value: "Wyoming" }, { label: "Pennsylvania", value: "Pennsylvania" }, { label: "Arizona", value: "Arizona" }, { label: "Florida", value: "Florida" }, { label: "Colorado", value: "Colorado" }, { label: "Hawaii", value: "Hawaii" }, { label: "Michigan", value: "Michigan" }, { label: "Vermont", value: "Vermont" }, { label: "Wisconsin", value: "Wisconsin" }, { label: "Oregon", value: "Oregon" }, { label: "Kansas", value: "Kansas" }, { label: "Kentucky", value: "Kentucky" }, { label: "Georgia", value: "Georgia" }, { label: "Massachusetts", value: "Massachusetts" }, { label: "Virginia", value: "Virginia" }, { label: "Missouri", value: "Missouri" }, { label: "Rhode Island", value: "Rhode Island" }, { label: "Alabama", value: "Alabama" }, { label: "Tennessee", value: "Tennessee" }, { label: "Mississippi", value: "Mississippi" }, { label: "Ohio", value: "Ohio" }, { label: "Indiana", value: "Indiana" }, { label: "Nebraska", value: "Nebraska" }, { label: "Oklahoma", value: "Oklahoma" }, { label: "Arkansas", value: "Arkansas" }, { label: "South Dakota", value: "South Dakota" }, { label: "North Dakota", value: "North Dakota" }, { label: "New Hampshire", value: "New Hampshire" }, { label: "Maryland", value: "Maryland" }, { label: "West Virginia", value: "West Virginia" }, { label: "Louisiana", value: "Louisiana" }, { label: "New Mexico", value: "New Mexico" }, { label: "Montana", value: "Montana" }, { label: "Utah", value: "Utah" }, { label: "South Carolina", value: "South Carolina" }, { label: "Connecticut", value: "Connecticut" }, { label: "Puerto Rico", value: "Puerto Rico" }, { label: "Nevada", value: "Nevada" }, { label: "Delaware", value: "Delaware" }],
@@ -79,6 +60,27 @@ export class VisualizationCanvasComponent implements OnInit {
 
   public maxList = { "Amount": { "mean": 60000000, "sum": 4000000000, "min": 25000000, "max": 250000000 }, "Projects": { "mean": 750, "sum": 21000, "min": 750, "max": 750 } };
 
+  public currentVisualizationState: { [characterName: string]: any } = {
+    "VISUALIZATION": "bar",
+    "Datafields": [],
+    "Values": [],
+    "Number_Values": 0,
+    "x-Axis": [],
+    "Number_x-Axis": 0,
+    "Color": [],
+    "Number_Color": 0,
+    "ColorElements": [],
+    "Highlight": "",
+    "CheckedHighlight": { "Projects": false, "Amount": false, },
+    "ColorHighlight": [],
+    "Filter": [],
+    "FilterC": { "Party of Governor": [], "State": [], "Investment Type": [], "Energy Type": [], "Year": [] },
+    "FilterN": { "Amount": [0, 4000000000], "Projects": [0, 21000] },
+    "FilterNActive": { "Amount": [false, false], "Projects": [false, false] },
+    "Aggregate": { "Amount": "sum", "Projects": "sum" }
+  }
+
+  public possibleVisualizationStates = []
 
 
   constructor(private ngxCsvParser: NgxCsvParser) { }
@@ -90,9 +92,16 @@ export class VisualizationCanvasComponent implements OnInit {
     }
   }
 
-  createVisualization(that, visualizationState, target, type) {
+  async createVisualization(that, visualizationState, target, type) {
 
-    if(typeof(this.retry[target]) === undefined){
+    if(that.correctionMode && type == "large"){
+      visualizationState = await that.training.changeAmbiguityInterpretation(that, that.training.possibleActions[that.training.selectedAmbiguity])
+    }
+
+    console.log(target)
+    console.log(visualizationState)
+
+    if(typeof(this.retry[target]) == "undefined"){
       this.retry[target] = 1
     }
     else{
@@ -208,15 +217,15 @@ export class VisualizationCanvasComponent implements OnInit {
             "bind": "legend"
           }]
 
-          if (Object.keys(visualizationState['ColorHighlight']).length > 0) {
-            params[0]["value"] = visualizationState['ColorHighlight']
+          if (visualizationState['ColorHighlight'].length > 0) {
+            params[0]["value"] = {[visualizationState['Color'][0]]: visualizationState['ColorHighlight']}
           }
         }
-        if (visualizationState['Color'].length >= 1 && type == "tall") {
+        if (visualizationState['Color'].length >= 1) {
 
-          if (Object.keys(visualizationState['ColorHighlight']).length > 0) {
+          if (visualizationState['ColorHighlight'].length > 0) {
               opacity = {
-                "condition": { "test": "visualizationState['ColorHighlight']['" + visualizationState['Color'][0] +"'].includes(datum['" + visualizationState['Color'][0] +"'])", "value": 1 },
+                "condition": { "test": { "field": visualizationState['Color'][0] , "oneOf": visualizationState['ColorHighlight'] }, "value": 1 },
                 "value": 0.2
               }
 
@@ -335,11 +344,11 @@ export class VisualizationCanvasComponent implements OnInit {
               "bind": "legend"
             }]
 
-            if (Object.keys(visualizationState['ColorHighlight']).length > 0) {
-              params[0]["value"] = visualizationState['ColorHighlight']
+            if (visualizationState['ColorHighlight'].length > 0) {
+              params[0]["value"] = {[visualizationState['Color'][0]]: visualizationState['ColorHighlight']}
 
               opacity = {
-                "condition": { "test": { "field": visualizationState['Color'][0] , "oneOf": visualizationState['ColorHighlight'][visualizationState['Color'][0]] }, "value": 1 },
+                "condition": { "test": { "field": visualizationState['Color'][0] , "oneOf": visualizationState['ColorHighlight'] }, "value": 1 },
                 "value": 0.2
               }
             }
@@ -354,11 +363,11 @@ export class VisualizationCanvasComponent implements OnInit {
               "bind": "legend"
             }]
 
-            if (Object.keys(visualizationState['ColorHighlight']).length > 0) {
-              params[0]["value"] = visualizationState['ColorHighlight']
+            if (visualizationState['ColorHighlight'].length > 0) {
+              params[0]["value"] = {[visualizationState['Color'][0]]: visualizationState['ColorHighlight']}
 
               opacity = {
-                "condition": { "test": { "field": visualizationState['Color'][0] , "oneOf": visualizationState['ColorHighlight'][visualizationState['Color'][0]] }, "value": 1 },
+                "condition": { "test": { "field": visualizationState['Color'][0] , "oneOf": visualizationState['ColorHighlight'] }, "value": 1 },
                 "value": 0.2
               }
             }
@@ -464,19 +473,17 @@ export class VisualizationCanvasComponent implements OnInit {
       )
     }
 
-    console.log(vegaLiteSpecification)
-
     vegaEmbed(target, vegaLiteSpecification, { "actions": false, "mode": "vega-lite", "renderer": type == "large" ? "svg" : "png" }).then(function (result: any) {
 
       var width = result.view.getState()["signals"]["width"]
-      if (visualizationState["Values"].length >= 1 && this.retry[target] < 4) {
-        if(type == "large" && Math.abs(width - this.baseWidth)/this.baseWidth > 0.1){
+      if (visualizationState["Values"].length >= 1 ) {
+        if(type == "large" && Math.abs(width - this.baseWidth)/this.baseWidth > 0.1 && this.retry[target] < 3){
           console.log(this.baseWidth)
           console.log(width)
           this.baseWidth = width
           this.createVisualization(that, visualizationState, target, type)
         }
-        else if(type == "small" && Math.abs(width - this.targetWidth)/this.targetWidth > 0.1){
+        else if(type == "small" && Math.abs(width - this.targetWidth)/this.targetWidth > 0.1 && this.retry[target] < 2){
           console.log(this.targetWidth)
           console.log(width)
           this.targetWidth = width
@@ -511,6 +518,28 @@ export class VisualizationCanvasComponent implements OnInit {
             this.createVisualization(that, visualizationState, "#vis", "large");
           }.bind(this))
         }
+
+        var visibleColorElements = document.querySelector(".mark-group.role-scope")
+        if(visibleColorElements){
+          visualizationState["ColorElements"] = []
+          for(var i = 0; i < visibleColorElements.children.length; i++){
+            var text = visibleColorElements.children[i].children[1].children[1].children[0].textContent
+            visualizationState["ColorElements"].push(text)
+            visibleColorElements.children[i].id = "ColorElement_" + text
+          }
+          
+        }
+        var visiblexAxis = document.getElementsByClassName("role-axis")
+        for (var j = 0; j < visiblexAxis.length; j++){
+          if(visiblexAxis[j]["ariaLabel"] != null && visiblexAxis[j]["ariaLabel"].startsWith("X-axis")){
+            for(var i = 0; i < visiblexAxis[j].children[0].children[1].children[1].children.length; i++){
+              var text = visiblexAxis[j].children[0].children[1].children[1].children[i].textContent
+              visiblexAxis[j].children[0].children[1].children[1].children[i].id = "Canvas_x-Axis_"+ visualizationState["x-Axis"][0] + "_" + text
+            }
+            
+          }
+        }
+        
       }
 
       // Access the Vega view instance (https://vega.github.io/vega/docs/api/view/) as result.view

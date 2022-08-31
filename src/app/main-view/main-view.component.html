@@ -1,28 +1,47 @@
+<div *ngIf = "overallMode == 1" id="interactionBlocker" style="position: absolute; width:100%; height: 100%; z-index: 1002"></div>
+<div *ngIf = "overallMode == 1" id="targetHover" style="border: 3px solid rgb(166 25 46 / 25%); border-radius: 10px; height: 0px; width:0px; position:absolute; display:none; z-index:1002;background-color: rgba(166, 25, 46, 0.03)"></div>
+
+<div class="grid grid-nogutter"  id="suggestion"  style="position:absolute; display:none; z-index:1003">
+    <div class="col" style="border: 3px solid rgba(166, 147, 25, 0.75); border-radius: 10px; height: 100%; background-color: rgba(166, 147, 25, 0.1)"></div>
+    <div class="col-fixed" style="width: 15px;">
+        <button id="declineSuggestion" (click)="declineSuggestion($event)" pButton pRipple type="button" icon="pi pi-times" class="p-button-rounded p-button-danger" style="height:18px !important; width:18px !important; padding: 0 !important"></button>
+        <button id="declineSuggestion" (click)="searchSuggestion($event)" pButton pRipple type="button" icon="pi pi-info" class="p-button-rounded p-button-help" style="height:18px !important; width:18px !important; padding: 0 !important"></button>
+
+
+    </div>
+    
+</div>
+
+
 <div class="toolbar" [ngStyle]="{'background-color':visCanvas.mode == 'past' ? '#9333EA' : '#a6192e'}">
     ContexIT
 </div>
+
+
+
+<p-toast></p-toast>
 
 
 <div class="grid grid-nogutter" style="height: calc(100vh - 30px)">
     <div class="col-1 col-1-extension bg-bluegray-50"
         style="border-right: 1px solid rgb(92, 92, 92); max-height: calc(100vh - 30px);">
         <p style="font-weight: bold; font-size: 14px;">Datafields</p>
-        <p-listbox [options]="visCanvas.dataFields" [(ngModel)]="visCanvas.currentVisualizationState['Datafields']"
+        <p-listbox id="Datafields" [options]="visCanvas.dataFields" [(ngModel)]="visCanvas.currentVisualizationState['Datafields']"
             (onClick)="checkTarget($event)" [metaKeySelection]="false" [multiple]="true" optionLabel="name"
             [listStyle]="{'max-height':'100%'}" [checkbox]="true" [showToggleAll]="false" [style]="{'width':'100%'}">
             <ng-template let-dataField pTemplate="item">
-                <div class="dataField-item" pDraggable="dataFields" (onDragStart)="dragStart($event, dataField)"
+                <div  id="{{'Datafield_' + dataField}}" class="dataField-item" pDraggable="dataFields" (onDragStart)="dragStart($event, dataField)"
                     (onDragEnd)="dragEnd()" (onDrag)="mouseChange($event, 'leave')" style="width: 100%;">
                     <div class="grid grid-nogutter">
                         <div class="col-4">
-                            <ng-template #ifBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'quantitative'"><img
-                                    src="../../assets/images/numbers.png"
+                            <ng-template #ifBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'quantitative'"><img id = "{{'Datafield_' + dataField + '_Type' }}"
+                                    src="../../assets/images/numbers.png" class="reasoningTargetArea"
                                     style="width: calc(100% - 4px); height: 4vh; padding-right: 4px;" /></ng-template>
-                            <ng-template #elseIfBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'nominal'"><img
-                                    src="../../assets/images/abc.png"
+                            <ng-template #elseIfBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'nominal'"><img id = "{{'Datafield_' + dataField + '_Type' }}"
+                                    src="../../assets/images/abc.png" class="reasoningTargetArea"
                                     style="width: calc(100% - 4px); height: 4vh; padding-right: 4px;" /></ng-template>
-                            <ng-template #elseBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'temporal'"><img
-                                    src="../../assets/images/calendar.png"
+                            <ng-template #elseBlock [ngIf]="visCanvas.dataFieldsConfig[dataField] == 'temporal'"><img id = "{{'Datafield_' + dataField + '_Type' }}"
+                                    src="../../assets/images/calendar.png" class="reasoningTargetArea"
                                     style="width: calc(100% - 4px); height: 4vh; padding-right: 4px;" /></ng-template>
                         </div>
                         <div class="col-8">{{dataField}}</div>
@@ -42,21 +61,21 @@
                         <p style="font-weight: bold; font-size: 14px;">Encodings</p>
                     </div>
                     <div class="col-12" id="visualizations" style="display: flex;justify-content: space-around;">
-                        <p-button id="bar" [styleClass]="'bar' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
+                        <p-button id="Visualization_bar" [styleClass]="'bar' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
                             pTooltip="Change to Bar Plot." (onClick)="changeVisualizationMouse('bar')">
                             <ng-template pTemplate="content">
                                 <img alt="logo" src="../../assets/images/bar-graph.png"
                                     style="width: 4vh; height: 4vh; margin: auto;" />
                             </ng-template>
                         </p-button>
-                        <p-button id="point" [styleClass]="'point' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
+                        <p-button id="Visualization_point" [styleClass]="'point' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
                             pTooltip="Change to Point Plot." (onClick)="changeVisualizationMouse('point')">
                             <ng-template pTemplate="content">
                                 <img alt="logo" src="../../assets/images/dot-plot.png"
                                     style="width: 4vh; height: 4vh; margin: auto;" />
                             </ng-template>
                         </p-button>
-                        <p-button id="line" [styleClass]="'line' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
+                        <p-button id="Visualization_line" [styleClass]="'line' == visCanvas.currentVisualizationState['VISUALIZATION'] ? 'p-button-raised p-button-secondary active' : 'p-button-raised p-button-secondary'"
                             pTooltip="Change to Line Plot." (onClick)="changeVisualizationMouse('line')">
                             <ng-template pTemplate="content">
                                 <img alt="logo" src="../../assets/images/line-chart.png"
@@ -64,12 +83,12 @@
                             </ng-template>
                         </p-button>
                     </div>
-                    <div class="col-12" id="values" pDroppable="dataFields" (onDrop)="drop($event, 'values')"
+                    <div class="col-12" id="Values" pDroppable="dataFields" (onDrop)="drop($event, 'values')"
                         (onDragEnter)="mouseChange($event, 'enter')" (onDragLeave)="mouseChange($event, 'leave')"
                         style="height: fit-content; min-height: 20px;">
                         <div class="grid grid-nogutter">
                             <div class="col-12">
-                                <p id="valueConstraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
+                                <p id="Values_Constraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
                                     Values ({{visCanvas.currentVisualizationState["Values"].length}}/2)</p>
                             </div>
                             <div class="col-12">
@@ -81,15 +100,16 @@
                                     [placeholder]="'Set Values'" [style]="{'width':'100%'}"
                                     [inputStyle]="{'width':'100%'}">
                                     <ng-template let-item pTemplate="selectedItem">
-                                        <div *ngIf="visCanvas.dataFieldsConfig[item] == 'quantitative'"
+                                        <div *ngIf="visCanvas.dataFieldsConfig[item] == 'quantitative'"  id="{{'Values_' + item}}"
                                             pDraggable="dataFields" (onDragStart)="dragStart($event, item)"
                                             (onDragEnd)="dragEnd()">
-                                            <p-toggleButton
+                                            <p-toggleButton id="{{'Values_'+ item + '_Highlight'}}"
                                                 *ngIf="visCanvas.currentVisualizationState['Values'].length > 1"
                                                 [onIcon]="'pi pi-star-fill'" offIcon="pi pi-star"
                                                 [(ngModel)]="visCanvas.currentVisualizationState['CheckedHighlight'][item]"
                                                 (onChange)="handleChangeStar($event, item)"></p-toggleButton>
-                                            <p-dropdown appendTo="body" [options]="visCanvas.aggregates"
+                                            <p-dropdown id="{{'Values_'+ item + '_Aggregate'}}"
+                                                appendTo="body" [options]="visCanvas.aggregates" 
                                                 [(ngModel)]="visCanvas.currentVisualizationState['Aggregate'][item]"
                                                 optionLabel="label" optionValue="value"
                                                 (onChange)="changeAggregateMouse($event, item)">
@@ -105,12 +125,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-12" id="xAxis" pDroppable="dataFields" (onDrop)="drop($event, 'xAxis')"
+                    <div class="col-12" id="x-Axis" pDroppable="dataFields" (onDrop)="drop($event, 'xAxis')"
                         (onDragEnter)="mouseChange($event, 'enter')" (onDragLeave)="mouseChange($event, 'leave')"
                         style="height: fit-content; min-height: 20px;">
                         <div class="grid grid-nogutter">
                             <div class="col-12">
-                                <p id="xAxisConstraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
+                                <p id="x-Axis_Constraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
                                     x-Axis ({{visCanvas.currentVisualizationState["x-Axis"].length}}/1)</p>
                             </div>
                             <div class="col-12">
@@ -123,7 +143,7 @@
                                     [inputStyle]="{'width':'100%'}">
                                     <ng-template let-item pTemplate="selectedItem">
 
-                                        <div pDraggable="dataFields" (onDragStart)="dragStart($event, item)"
+                                        <div pDraggable="dataFields" (onDragStart)="dragStart($event, item)" id="{{'x-Axis_' + item}}"
                                             (onDragEnd)="dragEnd()">{{item}}</div>
 
                                     </ng-template>
@@ -133,12 +153,12 @@
                         </div>
                     </div>
 
-                    <div class="col-12" id="legend" pDroppable="dataFields" (onDrop)="drop($event, 'legend')"
+                    <div class="col-12" id="Color" pDroppable="dataFields" (onDrop)="drop($event, 'color')"
                         (onDragEnter)="mouseChange($event, 'enter')" (onDragLeave)="mouseChange($event, 'leave')"
                         style="height: fit-content; min-height: 20px;">
                         <div class="grid grid-nogutter">
                             <div class="col-12">
-                                <p id="legendConstraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
+                                <p id="Color_Constraint" style="padding-left: 5%; margin: 10px 0 0 0; cursor: default;">
                                     Color ({{visCanvas.currentVisualizationState["Color"].length}}/1)</p>
                             </div>
                             <div class="col-12">
@@ -151,7 +171,7 @@
                                     [inputStyle]="{'width':'100%'}">
                                     <ng-template let-item pTemplate="selectedItem">
 
-                                        <div pDraggable="dataFields" (onDragStart)="dragStart($event, item)"
+                                        <div pDraggable="dataFields" (onDragStart)="dragStart($event, item)" id="{{'Color_' + item}}"
                                             (onDragEnd)="dragEnd()">{{item}}</div>
 
                                     </ng-template>
@@ -162,12 +182,12 @@
                 </div>
             </ng-template>
             <ng-template pTemplate>
-                <div id="filterPanel" class="grid grid-nogutter"
+                <div id="Filter" class="grid grid-nogutter"
                     style="overflow-y: scroll; align-content: flex-start; overflow-x: visible; width: 100%;">
                     <div class="col-12" style="height: fit-content; cursor: default;">
                         <p style="font-weight: bold; font-size: 14px;">Filters</p>
                     </div>
-                    <div id="AddingFilters" class="col-12"
+                    <div id="Filter_Adding" class="col-12"
                         style="background-color: white; border: black 1.5px dashed; text-align: center; padding: 0.15rem 0; cursor: default;"
                         pDroppable="dataFields" (onDrop)="drop($event, 'filter')"
                         (onDragEnter)="mouseChange($event, 'enter')" (onDragLeave)="mouseChange($event, 'leave')"
@@ -176,7 +196,7 @@
 
 
                     <ng-template ngFor let-dataField [ngForOf]="visCanvas.currentVisualizationState['Filter']">
-                        <div class="col-12" id="{{'Filter-'+ dataField}}"
+                        <div class="col-12" id="{{'Filter_' + dataField}}"
                             *ngIf="visCanvas.dataFieldsConfig[dataField] == 'quantitative'">
                             <p-accordion>
                                 <p-accordionTab [(selected)]="activeFilterAcc[dataField]">
@@ -185,9 +205,9 @@
                                         <p-button title="Delete" (onClick)="deleteFilter($event, dataField)"
                                             styleClass="p-button-text" icon="pi pi-times"></p-button>
                                     </p-header>
-                                    <div class="p-inputgroup">
+                                    <div class="p-inputgroup"  id="{{'Filter_' + dataField + '_LT'}}">
                                         <span class="p-inputgroup-addon"><i class="pi pi-step-backward"></i> From</span>
-                                        <p-inputNumber id="{{'0-'+ dataField}}"
+                                        <p-inputNumber
                                             *ngIf="visCanvas.currentVisualizationState['FilterNActive'][dataField][0]"
                                             (onInput)="changeNumFilterMouse($event, dataField, 'LT')"
                                             placeholder="Lower Boundary"
@@ -200,10 +220,10 @@
                                             (onChange)="changeActiveFilterMouse($event, dataField, 0)"></p-toggleButton>
 
                                     </div>
-                                    <div class="p-inputgroup">
+                                    <div class="p-inputgroup" id="{{'Filter_' + dataField + '_GT'}}">
                                         <span class="p-inputgroup-addon" style="padding-right: 2px;"> To <i
                                                 class="pi pi-step-forward"></i></span>
-                                        <p-inputNumber id="{{'1-'+ dataField}}"
+                                        <p-inputNumber
                                             *ngIf="visCanvas.currentVisualizationState['FilterNActive'][dataField][1]"
                                             (onInput)="changeNumFilterMouse($event, dataField, 'GT')"
                                             placeholder="Upper Boundary"
@@ -231,13 +251,17 @@
                                             styleClass="p-button-rounded p-button-text" icon="pi pi-times">
                                         </p-button>
                                     </p-header>
-                                    <p-multiSelect appendTo="body" id="{{'FilterEvent-'+ dataField}}"
+                                    <p-multiSelect appendTo="body" id="{{'Filter_'+ dataField + '_Elements'}}"
                                         [options]="visCanvas.optionDictionary[dataField]"
                                         (onChange)="changeCatFilterMouse($event, dataField)"
                                         [(ngModel)]="visCanvas.currentVisualizationState['FilterC'][dataField]"
+                                        [ngClass]="{'clickthrough': overallMode === 1}"
                                         optionLabel="label" optionValue="value" [overlayVisible]="false"
                                         placeholder="{{'Select '+ dataField + '...'}}" [showHeader]="true"
-                                        scrollHeight="200px">
+                                        scrollHeight="200px" [autoZIndex] = "false" baseZIndex="500">
+                                        <ng-template let-filterElement pTemplate="item">
+                                            <div id="{{'Filter_'+ dataField + '_Elements_' + filterElement['label']}}">{{filterElement["label"]}}</div>
+                                        </ng-template>
                                     </p-multiSelect>
                                 </p-accordionTab>
                             </p-accordion>
@@ -252,36 +276,34 @@
         </p-splitter>
     </div>
     <div class="col-9" style="max-height: calc(100vh - 30px);">
-        <div id="visPanel" class="grid grid-nogutter" style="position:relative; height: 100%">
-            <div class="col-12" id="nlClarification" style="height: 20%; overflow:hidden">
+        <!--Visualization Panel-->
+        <div class="grid grid-nogutter" style="position:relative; height: 100%">
+            <div class="col-12" id="nlClarification" style="height: 20%; overflow:hidden; position:relative; z-index: 120">
                 <div class="grid grid-nogutter" style="position:relative; height: 100%">
-                    <div class="col-9">
+                    <div class="col-1">
+                        <p-progressSpinner *ngIf="awaitingMessage" [style]="{width: '50px', height: '50px', margin: '10px'}" styleClass="custom-spinner" strokeWidth="8" fill="var(--surface-ground)" animationDuration=".5s"></p-progressSpinner>
+                    </div>
+                    <div class="col-9" style="height: calc(100% + 42px)">
                         <p-toggleButton id="historyButton"
                             [style]="{'position': 'relative','height': 'fit-content', 'width':'fit-content', 'left': '70%'}"
                             [onIcon]="'pi pi-comments'" offIcon="pi pi-comments" [onLabel]="'Close NL History'"
                             [offLabel]="'Show NL History'" [(ngModel)]="conversationHistory"
                             (onChange)="showHistory($event)">
                         </p-toggleButton>
-                        <!--<p-button id="adapt" styleClass="p-button-raised p-button-secondary active"
-                        (onClick)="adaptVisualizationSize()">
-                        <ng-template pTemplate="content">
-                        </ng-template>
-                    </p-button>-->
                         <div id="botWin" #botWindow
-                            style="position: relative;height: calc(100% - 35px);width: 90%;left: 10%;">
+                            style="position: relative;height: calc(100% - 35px);">
                         </div>
                     </div>
-                    <div class="col-2 col-offset-1">
-                        <button id="submitButton" pButton pRipple type="button" icon="pi pi-stop"
-                            iconPos="right" label="Finish Training" class="p-button-raised p-button-success"
+                    <div class="col-2">
+                        <button id="submitButton" pButton pRipple type="button" icon="pi pi-check-circle"
+                            iconPos="right" label="Done" class="p-button-raised p-button-success"
                             style="margin-top: 5px !important; display:none; float: right" (click)="endDemonstration(true)"></button>
                         <button id="continueButton" pButton pRipple type="button" icon="pi pi-angle-right"
-                            iconPos="right" label="Provide Reasoning" class="p-button-raised p-button-help"
+                            iconPos="right" label="Next" class="p-button-raised p-button-help"
                             style="margin-top: 5px !important; display:none; float: right" (click)="continueDemonstration()"></button>
                         <button id="cancelButton" pButton pRipple type="button" icon="pi pi-times" iconPos="right"
-                            label="Cancel" class="p-button-raised p-button-danger" (click)="endDemonstration(false)"
+                            label="Quit" class="p-button-raised p-button-danger" (click)="endDemonstration(false)"
                             style="margin-top: 5px !important; display:none; float: right"></button>
-
                     </div>
 
                 </div>
@@ -355,7 +377,7 @@
 
 <!-- Dialog Containers -->
 
-<p-dialog [(visible)]="displayDialog"
+<p-dialog [(visible)]="displayDialog" [position]="positionDialog" modal="true" dismissableMask="true"
     [style]="{'width': '50vw', 'box-shadow':'#a6192e 10px 10px 15px 0px', 'border':'2px solid black'}">
 
     <div class="grid grid-nogutter" style="position:relative; height: 90%; overflow: hidden; ">
@@ -364,8 +386,8 @@
 
         </div>
 
-        <span id="chatbotDialog" [innerHTML]="chatbotMessage" class="col-10">
-        </span>
+        <markdown id="chatbotDialog" [data]="chatbotMessage" class="col-10">
+        </markdown>
 
 
 
@@ -376,10 +398,12 @@
 
 
 <!-- Click Container-->
-<div id="Axis-0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; display: none;"
+<div id="Canvas_Axis-0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; display: none;"
     (click)="handleChange($event, 0 )"></div>
-<div id="Axis-1" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; display: none"
+<div id="Canvas_Axis-1" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; display: none"
     (click)="handleChange($event, 1 )"></div>
+
+<div id="Canvas_x-Axis" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; display: none"></div>
 
 
 <!-- Template for Current Understanding -->
@@ -391,7 +415,7 @@
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -421,7 +445,7 @@
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -449,7 +473,7 @@
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -478,7 +502,7 @@
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span>Remove All at</span> <span class="target">Values</span>
                 </p>
@@ -499,7 +523,7 @@
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span>Change </span> <span class="target">Visualization</span> to <span
                         class="attribute">Scatter</span>
@@ -521,7 +545,7 @@
 
     <p-card>
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
-            <div class="col-10" style="margin: auto 0">
+            <div class="col-11" style="margin: auto 0">
                 <p class="textField">
                     <span>Remove</span> items with <span class="target">Projects</span> 
                     <span class="relation">lower than 50000</span> 

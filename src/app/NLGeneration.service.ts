@@ -22,7 +22,7 @@ export class NLGeneration {
     Object.keys(actionList).forEach(key => {
       if (key == "VISUALIZATION") {
         for (var element in actionList["VISUALIZATION"]["ADD"]) {
-          this.creatCard(actionList["VISUALIZATION"]["ADD"][element] + " chart", "Visualization", "Change", "VISUALIZATION", null)
+          this.creatCard(that, actionList["VISUALIZATION"]["ADD"][element] + " chart", "Visualization", "Change", "VISUALIZATION", null)
         }
 
 
@@ -30,28 +30,28 @@ export class NLGeneration {
       if (key == "Aggregate") {
         for (var element in actionList["Aggregate"]["ADD"]) {
           if (actionList["Aggregate"]["ADD"][element]["KEY"] == "ALL") {
-            this.creatCard(actionList["Aggregate"]["ADD"][element]["ID"], "Aggregate of all Values", "Change", "Aggregate_" + element["KEY"], null)
+            this.creatCard(that, actionList["Aggregate"]["ADD"][element]["ID"], "Aggregate of all Values", "Change", "Aggregate_" + element["KEY"], null)
           }
           else {
-            this.creatCard(actionList["Aggregate"]["ADD"][element]["ID"], "Aggregate of " + actionList["Aggregate"]["ADD"][element]["KEY"], "Change", "Aggregate_" + element["KEY"], null)
+            this.creatCard(that, actionList["Aggregate"]["ADD"][element]["ID"], "Aggregate of " + actionList["Aggregate"]["ADD"][element]["KEY"], "Change", "Aggregate_" + element["KEY"], null)
           }
         }
       }
 
       if (this.encodingKeys.includes(key)) {
-        this.decisionPreparationEncoding(key, actionList)
+        this.decisionPreparationEncoding(that, key, actionList)
       }
 
       if (this.additionalKeys.includes(key)) {
-        this.decisionPreparation(key, actionList)
+        this.decisionPreparation(that, key, actionList)
       }
 
       if(key == "FilterC"){
-        this.decisionPreparationFilterC(actionList[key])
+        this.decisionPreparationFilterC(that, actionList[key])
       }
 
       if(key == "FilterN"){
-        this.decisionPreparationFilterN(actionList[key])
+        this.decisionPreparationFilterN(that, actionList[key])
       }
 
     })
@@ -65,7 +65,7 @@ export class NLGeneration {
   }
 
 
-  creatCard(attribute, target, type, id, verb) {
+  creatCard(that, attribute, target, type, id, verb) {
     var clone = null
 
     if (type == "Change") {
@@ -122,6 +122,8 @@ export class NLGeneration {
       clone.children[2].children[0].children[0].children[0].children[0].children[0].children[0].children[2].innerText = attribute
     }
 
+    clone.children[2].children[0].children[0].onclick = that.closeITLElement.bind(that);
+
     if (document.getElementById("DemonstrationGuide")!.nextSibling) {
       document.getElementById("DemonstrationGuide")!.parentNode!.insertBefore(clone, document.getElementById("DemonstrationGuide")!.nextSibling)
     }
@@ -131,40 +133,40 @@ export class NLGeneration {
 
   }
 
-  decisionPreparation(key, actionList){
+  decisionPreparation(that, key, actionList){
     if(actionList[key]["ADD"].length == 0 && actionList[key]["REMOVE"].length > 0){
       if (actionList[key]["REMOVE"].includes("ALL")){
-        this.creatCard("ALL", key, "SelectAll", key +"_ALL", "Remove")
+        this.creatCard(that, "ALL", key, "SelectAll", key +"_ALL", "Remove")
       }
       else{
-        this.creatCard( this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_REMOVE", "Remove")
+        this.creatCard(that,  this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_REMOVE", "Remove")
       }
     }
     else if (actionList[key]["ADD"].length > 0 && actionList[key]["ADD"].includes("ALL")){
       if(actionList[key]["REMOVE"].length == 0){
-        this.creatCard("ALL", key, "SelectAll", key +"_ALL", "Add")
+        this.creatCard(that, "ALL", key, "SelectAll", key +"_ALL", "Add")
       }
 
       else{
-        this.creatCard( this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_ALL", "Add all except")
+        this.creatCard(that,  this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_ALL", "Add all except")
       }
     }
     else if (actionList[key]["ADD"].length > 0){
       if(actionList[key]["REMOVE"].length == 0){
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ADD", "Add")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ADD", "Add")
       }
       else if (actionList[key]["REMOVE"].includes("ALL")){
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ALL", "Remove all except")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ALL", "Remove all except")
       }
       else{
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ADD", "Add")
-        this.creatCard( this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_REMOVE", "Remove")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "Select", key +"_ADD", "Add")
+        this.creatCard(that,  this.makeCombination(actionList[key]["REMOVE"]), key, "Select", key +"_REMOVE", "Remove")
 
       }
     }
   }
 
-  decisionPreparationFilterN(actionList){
+  decisionPreparationFilterN(that, actionList){
     
     Object.keys(actionList).forEach(key => {
       actionList[key].forEach(element => {
@@ -181,17 +183,17 @@ export class NLGeneration {
           }
         })
         if(key == "ADD"){
-          this.creatCard(attribute, element["Filter"], "FilterN", "FilterN_" +  element["Filter"], "Select")
+          this.creatCard(that, attribute, element["Filter"], "FilterN", element["Filter"] + "_FilterN", "Select")
         }
         else{
-          this.creatCard(attribute, element["Filter"], "FilterN", "FilterN_" +  element["Filter"], "Remove")
+          this.creatCard(that, attribute, element["Filter"], "FilterN", element["Filter"] + "_FilterN", "Remove")
         }
       })
       
     })
   }
 
-  decisionPreparationFilterC(actionList){
+  decisionPreparationFilterC(that, actionList){
     var keyList = ["State", "Energy Type", "Party of Governor", "Investment Type", "Year"]
 
     
@@ -204,31 +206,31 @@ export class NLGeneration {
     
       if(adding.length == 0 && removing.length > 0){
         if (removing[0]["ID"].includes("ALL")){
-          this.creatCard("ALL", key, "SelectAll", key +"_ALL", "Remove")
+          this.creatCard(that, "ALL", key, "SelectAll", key +"_ALL", "Remove")
         }
         else{
-          this.creatCard( this.makeCombination(removing[0]["ID"]), key, "Select", key +"_REMOVE", "Remove")
+          this.creatCard(that,  this.makeCombination(removing[0]["ID"]), key, "Select", key +"_REMOVE", "Remove")
         }
       }
       else if (adding.length > 0 && adding[0]["ID"].includes("ALL")){
         if(removing.length == 0){
-          this.creatCard("ALL", key, "SelectAll", key +"_ALL", "Add")
+          this.creatCard(that, "ALL", key, "SelectAll", key +"_ALL", "Add")
         }
   
         else{
-          this.creatCard( this.makeCombination(removing[0]["ID"]), key, "Select", key +"_ALL", "Add all except")
+          this.creatCard(that,  this.makeCombination(removing[0]["ID"]), key, "Select", key +"_ALL", "Add all except")
         }
       }
       else if(adding.length > 0 ){
         if(removing.length == 0){
-          this.creatCard( this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ADD", "Add")
+          this.creatCard(that,  this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ADD", "Add")
         }
         else if (removing[0]["ID"].includes("ALL")){
-          this.creatCard( this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ALL", "Remove all except")
+          this.creatCard(that,  this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ALL", "Remove all except")
         }
         else{
-          this.creatCard( this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ADD", "Add")
-          this.creatCard( this.makeCombination(removing[0]["ID"]), key, "Select", key +"_REMOVE", "Remove")
+          this.creatCard(that,  this.makeCombination(adding[0]["ID"]), key, "Select", key +"_ADD", "Add")
+          this.creatCard(that,  this.makeCombination(removing[0]["ID"]), key, "Select", key +"_REMOVE", "Remove")
   
         }
       }
@@ -237,25 +239,25 @@ export class NLGeneration {
   })
   }
 
-  decisionPreparationEncoding(key, actionList){
+  decisionPreparationEncoding(that, key, actionList){
     if(actionList[key]["ADD"].length == 0 && actionList[key]["REMOVE"].length > 0){
       if (actionList[key]["REMOVE"].includes("ALL")){
-        this.creatCard("ALL", key, "SelectAllEncoding", key +"_ALL", "Remove")
+        this.creatCard(that, "ALL", key, "SelectAllEncoding", key +"_ALL", "Remove")
       }
       else{
-        this.creatCard( this.makeCombination(actionList[key]["REMOVE"]), key, "SelectEncoding", key +"_REMOVE", "Remove")
+        this.creatCard(that,  this.makeCombination(actionList[key]["REMOVE"]), key, "SelectEncoding", key +"_REMOVE", "Remove")
       }
     }
     else if (actionList[key]["ADD"].length > 0){
       if(actionList[key]["REMOVE"].length == 0){
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ADD", "Add")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ADD", "Add")
       }
       else if (actionList[key]["REMOVE"].includes("ALL")){
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ALL", "Remove all except")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ALL", "Remove all except")
       }
       else{
-        this.creatCard( this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ADD", "Add")
-        this.creatCard( this.makeCombination(actionList[key]["REMOVE"]), key, "SelectEncoding", key +"_REMOVE", "Remove")
+        this.creatCard(that,  this.makeCombination(actionList[key]["ADD"]), key, "SelectEncoding", key +"_ADD", "Add")
+        this.creatCard(that,  this.makeCombination(actionList[key]["REMOVE"]), key, "SelectEncoding", key +"_REMOVE", "Remove")
 
       }
     }

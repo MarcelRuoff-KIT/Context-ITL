@@ -1,10 +1,13 @@
-import { AfterContentInit, AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { AfterContentInit, AfterViewInit, AfterViewChecked, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { MenuItem } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 
 import { InfoVisInteractionService } from "../info-vis-interaction.service";
 import { TrainingService } from "../training.service";
 import { NLGeneration } from "../NLGeneration.service";
+import {ContextCheckerService} from "../contextChecker.service"
 import { VisualizationCanvasComponent } from '../visualization-canvas/visualization-canvas.component';
+import { style } from '@angular/animations';
 
 declare global {
   interface Window {
@@ -24,9 +27,10 @@ interface Item {
 @Component({
   selector: 'app-main-view',
   templateUrl: './main-view.component.html',
-  styleUrls: ['./main-view.component.scss']
+  styleUrls: ['./main-view.component.scss'],
+  providers: [MessageService]
 })
-export class MainViewComponent implements OnInit, AfterContentInit, AfterViewInit {
+export class MainViewComponent implements OnInit, AfterContentInit, AfterViewInit, AfterViewChecked {
 
   @ViewChild('visCanvas', { static: true }) visCanvas: VisualizationCanvasComponent;
   @ViewChild("botWindow", { static: true }) botWindowElement: ElementRef;
@@ -35,13 +39,18 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   constructor(
     private infoVisInteraction: InfoVisInteractionService,
     public training: TrainingService,
-    private nlg: NLGeneration
+    private nlg: NLGeneration,
+    private messageService: MessageService,
+    private contextCh: ContextCheckerService
   ) { }
 
   public refreshInterval;
+  public hoverInterval;
 
   //Conversational Agent
+  public awaitingMessage = false;
   public displayDialog = false;
+  public positionDialog = "right"
   public chatbotMessage = ""
   public directLine: any;
   public store: any;
@@ -52,6 +61,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   public conversationHistory = false
 
+  public overallMode = 2;
   public correctionMode = false;
   public editMode = false;
   public compareMode = false;
@@ -72,30 +82,13 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   currentTarget: any = ""
 
   //Training Mode
+  blockedAction = false
   trainingMode = false
-  activeIndex = 0
-
-  items: MenuItem[] = [
-    {
-      label: "Specify Correct Understanding", command: (event: any) => {
-
-        if (this.activeIndex == 1) {
-          this.activeIndex = 1;
-        }
-        //this.messageService.add({ severity: 'info', summary: 'Seat Selection', detail: event.item.label });
-      }
-    },
-    {
-      label: "Highlight Relevant Context", command: (event: any) => {
-
-        this.activeIndex = 1;
-        //this.messageService.add({ severity: 'info', summary: 'Seat Selection', detail: event.item.label });
-      }
-    }];
+  currentReasoningTargetHover = ""
+  targetElement: HTMLElement;
 
   checked: boolean = false;
 
-  actionAmbiguities = [1, 2]
   action = {
     "VISUALIZATION": { "ADD": ["point"], "REMOVE": [] },
     "x-Axis": { "ADD": ["Energy Type"], "REMOVE": [] },
@@ -111,37 +104,8 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     "FilterN": { "ADD": [{ "Filter": "Projects", "GT": '500', "LT": "1000" }], "REMOVE": [] }
   }
 
-  action2 = {
-    "VISUALIZATION": { "ADD": ["line"], "REMOVE": [] },
-    "x-Axis": { "ADD": ["Amount"], "REMOVE": [] },
-    "Values": { "ADD": ["Projects"], "REMOVE": ["Amount"] },
-    "Color": { "ADD": ["Energy Type"], "REMOVE": [] },
-    "Highlight": { "ADD": ["Amount"], "REMOVE": [] },
-    "ColorHighlight": { "ADD": ["Solar", "Wind"], "REMOVE": [] },
-    "Filter": { "ADD": ["Amount"], "REMOVE": [] },
-    "FilterC": { "ADD": [{ "KEY": "State", "ID": ["California", "Florida"] }, { "KEY": "Energy Type", "ID": ["ALL"] }], "REMOVE": [{ "KEY": "Energy Type", "ID": ["Solar", "Wind"] }, { "KEY": "State", "ID": ["ALL"] }] },
-    "FilterN": { "ADD": [{ "Filter": "Projects", "GT": '500', "LT": "2000" }], "REMOVE": [] },
-    "Aggregate": { "ADD": [{ "KEY": "Amount", "ID": "mean" }], "REMOVE": [] }
-  }
 
-  action3 = {
-    "VISUALIZATION": { "ADD": ["bar"], "REMOVE": [] },
-    "x-Axis": { "ADD": ["Amount"], "REMOVE": [] },
-    "Values": { "ADD": ["Amount", "Projects"], "REMOVE": [] },
-    "Color": { "ADD": ["Energy Type"], "REMOVE": [] },
-    "Highlight": { "ADD": ["Amount"], "REMOVE": [] },
-    "ColorHighlight": { "ADD": ["Solar", "Wind"], "REMOVE": [] },
-    "Filter": { "ADD": ["Amount"], "REMOVE": [] },
-    "FilterC": { "ADD": [{ "KEY": "State", "ID": ["ALL"] }], "REMOVE": [{ "KEY": "Energy Type", "ID": ["Solar", "Wind"] }] },
-    "FilterN": { "ADD": [], "REMOVE": [{ "Filter": "Projects", "GT": '5000', "LT": "1000" }] },
-    "Aggregate": { "ADD": [{ "KEY": "ALL", "ID": "mean" }], "REMOVE": [] }
-  }
-  //possibleActions = [{ "Action": this.action, "ID": 0 }, { "Action": this.action2, "ID": 1 }, { "Action": this.action3, "ID": 2 }, { "Action": {}, "ID": 3 }]
-  possibleActions = [{ "Action": { "Aggregate": { "ADD": [{ "KEY": "Amount", "ID": "max" }], "REMOVE": [] }}, "ID": 1, "Score": 0.89 }, { "Action": { "Values": { "ADD": ["Amount"], "REMOVE": [] } }, "ID": 2, "Score": 0.85 }, { "Action": { "Highlight": { "ADD": ["Amount"], "REMOVE": [] } }, "ID": 3, "Score": 0.79 }]
 
-  possibleActions2 = [{ "Action": { "ColorHighlight": { "ADD": ["Florida"], "REMOVE": [] }}, "ID": 1, "Score": 0.92 }, { "Action": { "FilterC": { "ADD": [{ "KEY": "State", "ID": ["Florida"] }], "REMOVE": [{ "KEY": "State", "ID": ["ALL"] }] } }, "ID": 2, "Score": 0.9 }]
-
-  possibleActions3 = [{ "Action": { "ColorHighlight": { "ADD": ["Solar"], "REMOVE": [] }}, "ID": 1, "Score": 0.92 }, { "Action": { "FilterC": { "ADD": [{ "KEY": "Energy Type", "ID": ["Solar"] }], "REMOVE": [{ "KEY": "Energy Type", "ID": ["ALL"] }] } }, "ID": 2, "Score": 0.9 }]
 
 
 
@@ -235,9 +199,28 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   }
 
+  ngOnChanges(): void {
+    var target = document.getElementById("Datafields")
+    console.log(target)
+  }
+
   public ngAfterViewInit(): void {
     window.addEventListener('webchatincomingactivity', this.webChatHandler.bind(this));
+    document.addEventListener('mousemove', this.hoverTargetElement.bind(this))
+
   }
+
+  public ngAfterViewChecked(): void {
+    for(var i = 0; i < this.visCanvas.dataFields.length; i++){
+      var element = document.getElementById("Datafield_" + this.visCanvas.dataFields[i])
+      if(element["tagName"] == "DIV"){
+        element.parentElement.id = element.id
+        element.id = ""
+      }
+    }
+  }
+
+
 
   public ngAfterContentInit() {
     /**Chat Interface Manipulation */
@@ -252,8 +235,167 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     this.initialize();
 
+    document.onclick = this.getTargetElement.bind(this)
 
 
+
+  }
+
+  putTargetElement(id) {
+    var element = document.getElementById(id)
+    var target = document.getElementById(id)
+    if (id != this.currentReasoningTargetHover) {
+      let offsetTop = -3;
+      let offsetLeft = -3;
+      let scrollTop = 0;
+
+      var parent = element['parentElement']
+      while (parent) {
+        scrollTop += parent['scrollTop']
+        parent = parent['parentElement']
+      }
+
+      while (element) {
+        offsetTop += element['offsetTop'];
+        offsetLeft += element['offsetLeft'];
+        element = <HTMLElement>element['offsetParent'];
+      }
+
+
+
+
+      var suggestion = document.getElementById('suggestion')
+      suggestion['style']["display"] = 'flex'
+      suggestion['style']["width"] = '' + (target['offsetWidth'] + 21) + 'px'
+      suggestion['style']["height"] = '' + (target['offsetHeight'] + 6) + 'px'
+      suggestion['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
+      suggestion['style']["left"] = '' + offsetLeft + 'px'
+    }
+
+  }
+
+  getTargetElement(event) {
+    if (this.overallMode == 1 && !this.blockedAction) {
+      var allElements = <HTMLElement[]> document.elementsFromPoint(event.x, event.y)
+      var triggers =  allElements.filter(element => { return element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("p-multiselect-trigger") && element["tagName"] == "DIV" })
+      
+      if(allElements.some(element => element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("ng-trigger-overlayAnimation")))
+      {
+
+      }
+      else if (triggers.length > 0) {
+        triggers[0].click()
+      }
+      else {
+        var target = allElements.filter(element => { return element.id != '' && element.id != 'interactionBlocker' && element.id != 'targetHover' && element.id != 'suggestion' && element.id != 'visCanvas' && element.id != 'visGrid'})
+
+        if (target.length > 0 && !target.some(id => id.id == "nlClarification") && !target.some(id => id.id == "displayConstraints") && !target.some(id => id.id == "displayAmbiguities") && !target.some(id => id.id == "acceptSuggestion") && !target.some(id => id.id == "declineSuggestion")) {
+          var element = target[0]
+          if (target[0]['id'] != this.currentReasoningTargetHover) {
+            let offsetTop = -3;
+            let offsetLeft = -3;
+            let scrollTop = 0;
+
+            var parent = element['parentElement']
+            while (parent) {
+              scrollTop += parent['scrollTop']
+              parent = parent['parentElement']
+            }
+
+            while (element) {
+              offsetTop += element['offsetTop'];
+              offsetLeft += element['offsetLeft'];
+              element = <HTMLElement>element['offsetParent'];
+            }
+
+
+
+
+            var suggestion = document.getElementById('suggestion')
+            suggestion['style']["display"] = 'flex'
+            suggestion['style']["width"] = '' + (target[0]['offsetWidth'] + 21) + 'px'
+            suggestion['style']["height"] = '' + (target[0]['offsetHeight'] + 6) + 'px'
+            suggestion['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
+            suggestion['style']["left"] = '' + offsetLeft + 'px'
+          }
+        }
+        else {
+          var suggestion = document.getElementById('suggestion')
+          //suggestion['style']["display"] = 'none'
+        }
+      }
+
+    }
+
+    this.blockedAction = false
+
+  }
+
+  hoverTargetElement(event) {
+    if (this.overallMode == 1 && !this.blockedAction) {
+      var allElements = <HTMLElement[]> document.elementsFromPoint(event.x, event.y)
+      var triggers =  allElements.filter(element => { return element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("p-multiselect-trigger") && element["tagName"] == "DIV" })
+      
+      if(allElements.some(element => element["className"] != null && element["nodeName"] != "svg" &&  element["className"].includes("ng-trigger-overlayAnimation")))
+      {
+
+      }
+      else if (triggers.length > 0) {
+        triggers[0].click()
+      }
+      else {
+      var target = document.elementsFromPoint(event.x, event.y);
+      target = target.filter(element => { return element.id != '' && element.id != 'interactionBlocker' && element.id != 'targetHover' && element.id != 'suggestion' && element.id != 'visCanvas' && element.id != 'visGrid'})
+      if (target.length > 0 && !target.some(id => id.id == "nlClarification") && !target.some(id => id.id == "displayConstraints") && !target.some(id => id.id == "displayAmbiguities") && !target.some(id => id.id == "acceptSuggestion") && !target.some(id => id.id == "declineSuggestion")) {
+        var element = target[0]
+        if (target[0]['id'] != this.currentReasoningTargetHover) {
+          let offsetTop = -3;
+          let offsetLeft = -3;
+          let scrollTop = 0;
+
+          var parent = element['parentElement']
+          while (parent) {
+            scrollTop += parent['scrollTop']
+            parent = parent['parentElement']
+          }
+
+          while (element) {
+            offsetTop += element['offsetTop'];
+            offsetLeft += element['offsetLeft'];
+            element = element['offsetParent'];
+          }
+
+
+
+
+          var targetHover = document.getElementById('targetHover')
+          targetHover['style']["display"] = 'block'
+          targetHover['style']["width"] = '' + (target[0]['offsetWidth'] + 6) + 'px'
+          targetHover['style']["height"] = '' + (target[0]['offsetHeight'] + 6) + 'px'
+          targetHover['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
+          targetHover['style']["left"] = '' + offsetLeft + 'px'
+        }
+      }
+      else {
+        var targetHover = document.getElementById('targetHover')
+        targetHover['style']["display"] = 'none'
+      }
+    }
+    }
+  }
+
+  acceptSuggestion(event) {
+
+  }
+
+  declineSuggestion(event) {
+    this.blockedAction = true
+    document.getElementById('suggestion')["style"]["display"] = "none"
+  }
+
+  searchSuggestion(event) {
+    this.blockedAction = true
+    this.putTargetElement("Color_Constraint")
   }
 
   initialize() {
@@ -267,17 +409,22 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       //$("div[class^='webchat__basic-transcript']").first().css("display", "none")
 
 
-      document.getElementById("Axis-0")["style"]["display"] = "none"
-      document.getElementById("Axis-1")["style"]["display"] = "none"
+      document.getElementById("Canvas_Axis-0")["style"]["display"] = "none"
+      document.getElementById("Canvas_Axis-1")["style"]["display"] = "none"
 
       var axis = document.getElementsByClassName("role-axis");
       var counter = 0;
       for (var i = 0; i < axis.length; i++) {
 
-        if (axis[i]["ariaLabel"] != null && axis[i]["ariaLabel"].startsWith("Y-axis")) {
+        if (axis[i]["ariaLabel"] != null ) {
           var bounds = axis[i].getBoundingClientRect()
 
-          var element = document.getElementById("Axis-" + counter)
+          var element = document.getElementById("Canvas_Axis-" + counter)
+
+          if(axis[i]["ariaLabel"].startsWith("X-axis")){
+            element = document.getElementById("Canvas_x-Axis")
+          }
+
           element["style"]["display"] = "block"
           element["style"]["top"] = bounds.top.toString() + "px"
           element["style"]["left"] = bounds.left.toString() + "px"
@@ -295,6 +442,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       }
 
     }, 1000)
+
   }
 
   receiveData(data: any) {
@@ -305,67 +453,115 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
 
-    if(event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "message"){
+    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "message") {
       this.displayDialog = true;
 
       if (!this.correctionMode) {
-        if(event["data"]["text"].toLowerCase() == "show max amount invested"){
-          await this.startDemonstration(this.possibleActions)
-  
-        }
-        else if(event["data"]["text"].toLowerCase() == "get me solar"){
-          await this.startDemonstration(this.possibleActions3)
-  
-        }
-        else if(event["data"]["text"].toLowerCase() == "get me florida"){
-          await this.startDemonstration(this.possibleActions2)
-  
-        }
         document.getElementById("botMessage").innerHTML = ""
-  
       }
-      this.chatbotMessage = "<b> hallo </b>"//event["data"]["text"]
+      this.chatbotMessage = event["data"]["text"]
 
     }
-    else if(event["data"]["from"]["role"] == 'user' && event["data"]["type"] == "message"){
+    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "event") {
+      if (event["data"]["name"] == "Start Demonstration") {
+        await this.startDemonstration(event["data"]["value"]["Content"], event["data"]["value"]["Entities"])
+      }
+      else if (event["data"]["name"] == "PerformNLI") {
+        event["data"]["value"]["Content"]["Action"].forEach(action => {
+          this.infoVisInteraction.processAction(this, this.visCanvas.currentVisualizationState, action, true, null)
+        })
+        this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+      }
+      else if (event["data"]["name"] == "finishedProcess") {
+        this.awaitingMessage = false;
+      }
+    }
+    else if (event["data"]["from"]["role"] == 'user' && event["data"]["type"] == "message") {
       $(".webchat__send-box-text-box__input").attr("placeholder", "Current NL input: " + event["data"]["text"])
+      this.awaitingMessage = true;
     }
-    
 
-    
+
+
   }
 
-  async startDemonstration(possibleActions){
+  async startDemonstration(possibleActions, entities) {
     this.correctionMode = true
+    this.training.initialEntities = entities
     await this.training.initializeTraining(this, possibleActions)
     await this.adaptVisualizationSize(0)
 
   }
 
-  async continueDemonstration(){
+  async continueDemonstration() {
     this.correctionMode = false
     this.visCanvas.mode = 'past'
-    /*window.addEventListener('click', this.clickHighlight.bind(this), false)
-    window.addEventListener('mouseover', this.mousoverHighlight.bind(this), false)
-    window.addEventListener('mouseout', this.mouseoutHighlight.bind(this), false)*/
+
+    this.displayDialog = true;
+    this.chatbotMessage = "Thank you for specifying the visual elements that are crucial for understanding your interpretation of the NL Input. \r\n You are now seeing the state of the data visualization tool before performing the NL input. \r\n I have highlighted some visual elements that I think could be relevant!"
+
     this.visCanvas.currentVisualizationState = this.training.initialVisualizationState
 
     await this.adaptVisualizationSize(1)
+
+    this.putTargetElement("Year_temporal")
   }
 
-  endDemonstration(finished){
+  endDemonstration(finished) {
     this.visCanvas.mode = 'current'
 
     this.adaptVisualizationSize(2)
 
+    if (finished) {
+      this.messageService.add({ severity: 'success', summary: 'New NL input', detail: 'You have successfully trained a new NL input.' });
+
+      this.directLine
+        .postActivity({
+          from: { id: "USER_ID", name: "USER_NAME" },
+          name: "endTrainingMode",
+          type: "event",
+          value: {
+            'sequence': this.training.possibleActions[this.training.selectedAmbiguity]["Action"],
+            'initialState': this.training.initialVisualizationState
+          }
+        })
+        .subscribe(
+          id => {
+            if (sessionStorage.getItem('conversationID') == null) {
+              sessionStorage.setItem('conversationID', this.directLine.conversationId);
+            };
+          },
+          error => console.log(`Error posting activity ${error}`)
+        );
+    }
+    else {
+      this.messageService.add({ severity: 'error', summary: 'Training Canceled', detail: 'You have canceled the training.' });
+
+      this.directLine
+        .postActivity({
+          from: { id: "USER_ID", name: "USER_NAME" },
+          name: "cancelTrainingMode",
+          type: "event",
+        })
+        .subscribe(
+          id => {
+            if (sessionStorage.getItem('conversationID') == null) {
+              sessionStorage.setItem('conversationID', this.directLine.conversationId);
+            };
+          },
+          error => console.log(`Error posting activity ${error}`)
+        );
+    }
+
     /*window.removeEventListener('click', this.clickHighlight, false)
     window.removeEventListener('mouseover', this.mousoverHighlight, false)
     window.removeEventListener('mouseout', this.mouseoutHighlight, false)*/
-    
-    
+
+
   }
 
   async adaptVisualizationSize(target) {
+    this.overallMode = target
 
 
     if (target == 0) {
@@ -391,7 +587,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     }
 
-    else{
+    else {
       document.getElementById("displayAmbiguities")["style"]["display"] = "none"
       document.getElementById("displayConstraints")["style"]["display"] = "none"
       document.getElementById("visGrid")["style"]["height"] = "80%"
@@ -400,6 +596,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById("continueButton")["style"]["display"] = "none"
       document.getElementById("submitButton")["style"]["display"] = "none"
       document.getElementById("cancelButton")["style"]["display"] = "none"
+      document.getElementById('suggestion')["style"]["display"] = "none"
 
     }
 
@@ -430,6 +627,8 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     this.training.selectedAmbiguity = ambiguity
 
+    this.visCanvas.possibleVisualizationStates[ambiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[ambiguity])
+
     this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[ambiguity]
 
     this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[ambiguity]["Action"])
@@ -458,7 +657,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         closeButton[i]["style"].display = 'flex';
       }
     }
-    else{
+    else {
       var verbs = document.getElementsByClassName('verb');
       for (var i = 0; i < verbs.length; i++) {
         verbs[i]["style"].display = '';
@@ -476,6 +675,20 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     }
   }
 
+  async closeITLElement(event) {
+    await this.training.removeAction(this, event.currentTarget.parentElement.parentElement.parentElement.id.split("_"))
+
+    this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[this.training.selectedAmbiguity])
+
+    this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
+
+    await this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[this.training.selectedAmbiguity]["Action"])
+
+    await this.visCanvas.createVisualization(this, this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity], "#Ambiguity_" + this.training.selectedAmbiguity, "small")
+
+    await this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+  }
+
   showHistory(event) {
     if (event.checked) {
       var sheight = document.querySelectorAll("[class$=webchat__basic-transcript__scrollable]")[0].scrollHeight;
@@ -489,17 +702,11 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById("botMessage")["style"]["z-index"] = "1"
 
     }
-    console.log(event)
-
   }
 
   mouseChange(event, state) {
     /*
     if (this.draggedDatafield != null) {
-      console.log(state)
-
-      console.log(event["currentTarget"]["id"])
-
       if (state == "enter") {
         this.currentTarget = event["currentTarget"]["id"]
         event["currentTarget"]["style"]["backgroundColor"] = "#a6192e2e"
@@ -531,16 +738,16 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     if (this.draggedDatafield) {
       if (target == "xAxis") {
-        await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true)
+        await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true, null)
       }
       else if (target == "values") {
-        await this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true)
+        await this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true, null)
       }
-      else if (target == "legend") {
-        await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true)
+      else if (target == "color") {
+        await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true, null)
       }
       else if (target == "filter") {
-        await this.infoVisInteraction.openingFilters(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true)
+        await this.infoVisInteraction.openingFilters(this, this.visCanvas.currentVisualizationState, [this.draggedDatafield], true, null)
       }
 
       this.draggedDatafield = null;
@@ -550,26 +757,26 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   async select(event: any, target: string) {
     if (target == "xAxis") {
-      await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event], true)
+      await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     else if (target == "values") {
-      await this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [event], true)
+      await this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
-    else if (target == "legend") {
-      await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [event], true)
+    else if (target == "color") {
+      await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
   async unselect(event: any, target: string) {
     if (target == "xAxis") {
-      await this.infoVisInteraction.removeXAxis(this, this.visCanvas.currentVisualizationState, [event], true)
+      await this.infoVisInteraction.removeXAxis(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     else if (target == "values") {
-      await this.infoVisInteraction.removeValues(this, this.visCanvas.currentVisualizationState, [event], true)
+      await this.infoVisInteraction.removeValues(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
-    else if (target == "legend") {
-      await this.infoVisInteraction.removeLegends(this, this.visCanvas.currentVisualizationState, [event], true)
+    else if (target == "color") {
+      await this.infoVisInteraction.removeLegends(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
@@ -579,53 +786,53 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
   search(event: any) {
-    console.log(event);
     this.filteredDataFields = this.visCanvas.dataFields.filter(c => c.toLowerCase().startsWith(event.query.toLowerCase()));
   }
 
   async checkTarget(event: any) {
     if (event.value.includes(event.option)) {
+      this.visCanvas.currentVisualizationState["Datafields"] = event.value.filter(element => element != event.option)
       if (this.visCanvas.dataFieldsConfig[event.option] == "quantitative") {
-        this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.addValues(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
       else if (this.visCanvas.currentVisualizationState['x-Axis'].length == 0) {
-        this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
       else if (this.visCanvas.currentVisualizationState['Color'].length == 0) {
-        this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
       else {
-        this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.addXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
     }
     else {
+      this.visCanvas.currentVisualizationState["Datafields"].push(event.option)
       if (this.visCanvas.currentVisualizationState['x-Axis'].includes(event.option)) {
-        await this.infoVisInteraction.removeXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.removeXAxis(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
       else if (this.visCanvas.currentVisualizationState['Values'].includes(event.option)) {
-        await this.infoVisInteraction.removeValues(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.removeValues(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
       else if (this.visCanvas.currentVisualizationState['Color'].includes(event.option)) {
-        await this.infoVisInteraction.removeLegends(this, this.visCanvas.currentVisualizationState, [event.option], true)
+        await this.infoVisInteraction.removeLegends(this, this.visCanvas.currentVisualizationState, [event.option], true, null)
       }
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
   async deleteFilter(event: any, target: any) {
-    await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [target], true)
+    await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [target], true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
 
   async changeVisualizationMouse(target: string) {
-    await this.infoVisInteraction.changeVisualization(this, this.visCanvas.currentVisualizationState, target, true)
+    await this.infoVisInteraction.changeVisualization(this, this.visCanvas.currentVisualizationState, target, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
   async changeAggregateMouse(event, target) {
-    console.log(event)
-    await this.infoVisInteraction.changeAggregate(this, this.visCanvas.currentVisualizationState, target, event.value, true)
+    await this.infoVisInteraction.changeAggregate(this, this.visCanvas.currentVisualizationState, target, event.value, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
@@ -639,148 +846,76 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       var filter: any = { "Filter": target, [boundary]: event.value }
       var verb = "REMOVE"
 
-      if(boundary == "LT" && event.value < this.visCanvas.currentVisualizationState["FilterN"][target][0]){
+      if (boundary == "LT" && event.value < this.visCanvas.currentVisualizationState["FilterN"][target][0]) {
         verb = "ADD"
-        if (this.visCanvas.currentVisualizationState["FilterN"][target][1] == this.visCanvas.maxList[target][this.visCanvas.currentVisualizationState["Aggregate"][target]]){
+        if (this.visCanvas.currentVisualizationState["FilterN"][target][1] == this.visCanvas.maxList[target][this.visCanvas.currentVisualizationState["Aggregate"][target]]) {
           filter = { "Filter": target, "GT": event.value }
         }
-        else{
-          filter = { "Filter": target, "GT": event.value, "LT":  this.visCanvas.currentVisualizationState["FilterN"][target][1]}
-        }
-      } 
-      else if(boundary == "GT" && event.value > this.visCanvas.currentVisualizationState["FilterN"][target][1]){
-        verb = "ADD"
-        if (this.visCanvas.currentVisualizationState["FilterN"][target][0] == 0){
-          filter = { "Filter": target, "LT": event.value }
-        }
-        else{
-          filter = { "Filter": target, "LT": event.value, "GT":  this.visCanvas.currentVisualizationState["FilterN"][target][0]}
+        else {
+          filter = { "Filter": target, "GT": event.value, "LT": this.visCanvas.currentVisualizationState["FilterN"][target][1] }
         }
       }
-      
-      this.infoVisInteraction.changeNumFilter(this, this.visCanvas.currentVisualizationState, [filter], verb, true)
+      else if (boundary == "GT" && event.value > this.visCanvas.currentVisualizationState["FilterN"][target][1]) {
+        verb = "ADD"
+        if (this.visCanvas.currentVisualizationState["FilterN"][target][0] == 0) {
+          filter = { "Filter": target, "LT": event.value }
+        }
+        else {
+          filter = { "Filter": target, "LT": event.value, "GT": this.visCanvas.currentVisualizationState["FilterN"][target][0] }
+        }
+      }
+
+      this.infoVisInteraction.changeNumFilter(this, this.visCanvas.currentVisualizationState, [filter], verb, true, null)
       this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
     }
 
   }
 
   changeCatFilterMouse(event, target) {
-    console.log(event)
     var filter = {
       "KEY": target, "ID": [event.itemValue]
     }
     if (typeof (event.itemValue) == "undefined" && event.value.length == 0) {
-      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true)
+      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
     }
     else if (typeof (event.itemValue) == "undefined" && event.value.length > 1 && this.visCanvas.optionDictionary[target].every(item => event.value.includes(item["value"]))) {
-      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true)
+      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
     }
     else if (event.value.includes(event.itemValue)) {
       this.visCanvas.currentVisualizationState["FilterC"][target] = this.visCanvas.currentVisualizationState["FilterC"][target].filter(element => element != event.itemValue)
-      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true)
+      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
     }
     else {
       this.visCanvas.currentVisualizationState["FilterC"][target].push(event.itemValue)
-      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true)
+      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
   changeActiveFilterMouse(event, target, boundary) {
-    console.log(event)
-    this.infoVisInteraction.changeActiveFilter(this, this.visCanvas.currentVisualizationState, target, boundary, event.checked, true)
+    this.infoVisInteraction.changeActiveFilter(this, this.visCanvas.currentVisualizationState, target, boundary, event.checked, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
 
   handleChange(event: any, target: any) {
-    if(this.visCanvas.currentVisualizationState['CheckedHighlight'][this.visCanvas.currentVisualizationState["Values"][target]]  && this.visCanvas.currentVisualizationState["Values"].length > 1){
-      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true)
+    if (this.visCanvas.currentVisualizationState['CheckedHighlight'][this.visCanvas.currentVisualizationState["Values"][target]] && this.visCanvas.currentVisualizationState["Values"].length > 1) {
+      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
     }
-    else if (this.visCanvas.currentVisualizationState["Values"].length > 1){
-      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true)
+    else if (this.visCanvas.currentVisualizationState["Values"].length > 1) {
+      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
   handleChangeStar(event: any, target: any) {
-    if(this.visCanvas.currentVisualizationState['CheckedHighlight'][target]){
-      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true)
+    if (this.visCanvas.currentVisualizationState['CheckedHighlight'][target]) {
+      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
     }
-    else{
-      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true)
+    else {
+      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
-
-  
-
-
-
-
-
-  /** Labeling Mode 
-
-  clickHighlight(e){
-    e.preventDefault();
-    return false;
-  }
-
-  mousoverHighlight(e){
-    this.applyMask(e.target);
-  }
-
-  mouseoutHighlight(e){
-    //this.clearMask()
-  }
-
-  applyMask(target) {
-    if(document.getElementsByClassName('highlight-wrap').length > 0) {
-        this.resizeMask(target);
-    }else{
-        this.createMask(target);
-    }
-}
-
-resizeMask(target) {
-    var rect = target.getBoundingClientRect();
-    var hObj = document.getElementsByClassName('highlight-wrap')[0];
-    hObj["style"].top=rect.top+"px";
-    hObj["style"].width=rect.width+"px";
-    hObj["style"].height=rect.height+"px";
-    hObj["style"].left=rect.left+"px";
-   // hObj.style.WebkitTransition='top 0.2s';
-}
-
-createMask(target) {
-    var rect = target.getBoundingClientRect();
-    var hObj = document.createElement("div");
-    hObj.className = 'highlight-wrap';
-    hObj["style"].position='absolute';
-    hObj["style"].top=rect.top+"px";
-    hObj["style"].width=rect.width+"px";
-    hObj["style"].height=rect.height+"px";
-    hObj["style"].left=rect.left+"px";
-    hObj["style"].backgroundColor = '#205081';
-    hObj["style"].opacity='0.5';
-    hObj["style"].cursor='default';
-    hObj["style"].pointerEvents='none';
-    //hObj.style.WebkitTransition='top 0.2s';
-    document.body.appendChild(hObj);
-}
-
-clearMasks() {
-    var hwrappersLength = document.getElementsByClassName("highlight-wrap").length;
-    var hwrappers = document.getElementsByClassName("highlight-wrap");
-    if(hwrappersLength > 0) {
-        for(var i=0; i<hwrappersLength; i++) {
-            console.log("Removing existing wrap");
-            hwrappers[i].remove();
-        }
-    }
-}
-*/
-
-
 
 }
