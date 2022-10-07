@@ -3,6 +3,8 @@ import {FormsModule} from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+
 
 
 import { MarkdownModule } from 'ngx-markdown';
@@ -63,6 +65,7 @@ import {SelectButtonModule} from 'primeng/selectbutton';
     BrowserModule,
     BrowserAnimationsModule,
     HttpClientModule,
+    FontAwesomeModule,
     MarkdownModule.forRoot(),
     AppRoutingModule,
     FormsModule,

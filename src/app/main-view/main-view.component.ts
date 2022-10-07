@@ -2,6 +2,9 @@ import { AfterContentInit, AfterViewInit, AfterViewChecked, Component, ElementRe
 import { ConfirmationService, MenuItem } from 'primeng/api';
 import { MessageService } from 'primeng/api';
 
+import { faEraser } from '@fortawesome/free-solid-svg-icons';
+
+
 import { InfoVisInteractionService } from "../info-vis-interaction.service";
 import { TrainingService } from "../training.service";
 import { NLGeneration } from "../NLGeneration.service";
@@ -57,6 +60,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   public overallMode = 2;
   public line: any = null;
   public mouseOver = ""
+  public icon = faEraser
 
 
   draggedDatafield: any = null;

@@ -128,7 +128,7 @@
                                     Values ({{visCanvas.currentVisualizationState["Values"].length}}/2)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <i class="pi pi-times" (click)="unselect('ALL', 'values')" style="cursor:pointer"></i>
+                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'values')" style="cursor:pointer"></fa-icon>
                             </div>
                             <div class="col-12">
                                 <p-autoComplete [(ngModel)]="visCanvas.currentVisualizationState['Values']"
@@ -180,7 +180,8 @@
                                     x-Axis ({{visCanvas.currentVisualizationState["x-Axis"].length}}/1)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <i class="pi pi-times" (click)="unselect('ALL', 'xAxis')" style="cursor:pointer"></i>
+                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'xAxis')" style="cursor:pointer"></fa-icon>
+
                             </div>
                             <div class="col-12">
                                 <p-autoComplete [(ngModel)]="visCanvas.currentVisualizationState['x-Axis']"
@@ -211,7 +212,7 @@
                                     Color ({{visCanvas.currentVisualizationState["Color"].length}}/1)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <i class="pi pi-times" (click)="unselect('ALL', 'color')" style="cursor:pointer"></i>
+                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'color')" style="cursor:pointer"></fa-icon>
                             </div>
                             <div class="col-12">
                                 <p-autoComplete [(ngModel)]="visCanvas.currentVisualizationState['Color']"
@@ -240,7 +241,7 @@
                         <p style="font-weight: bold; font-size: 14px;">Filters</p>
                     </div>
                     <div class="col-1" style="display:flex; justify-content:flex-end; align-items:center">
-                        <i class="pi pi-times" (click)="unselect('ALL', 'filter')" style="cursor:pointer"></i>
+                        <fa-icon [icon]="icon" (click)="unselect('ALL', 'filter')" style="cursor:pointer"></fa-icon>
                     </div>
                     <div id="Filter_Adding"
                         [ngClass]="mouseTarget('Filter_Adding') ? 'col-12 highlightEncoding' : 'col-12'"
