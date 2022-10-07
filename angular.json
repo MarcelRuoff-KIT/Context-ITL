@@ -39,6 +39,7 @@
               "./node_modules/primeng/resources/primeng.min.css"
             ],
             "scripts": [
+              "node_modules/leader-line/leader-line.min.js",
               "node_modules/marked/marked.min.js",
               {
                 

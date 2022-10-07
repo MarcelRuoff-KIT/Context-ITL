@@ -1,19 +1,22 @@
 import { AfterContentInit, AfterViewInit, AfterViewChecked, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { MenuItem } from 'primeng/api';
+import { ConfirmationService, MenuItem } from 'primeng/api';
 import { MessageService } from 'primeng/api';
 
 import { InfoVisInteractionService } from "../info-vis-interaction.service";
 import { TrainingService } from "../training.service";
 import { NLGeneration } from "../NLGeneration.service";
-import {ContextCheckerService} from "../contextChecker.service"
+import { ContextCheckerService } from "../contextChecker.service"
+import { StateHandlingService } from '../stateHandling.service';
+
 import { VisualizationCanvasComponent } from '../visualization-canvas/visualization-canvas.component';
-import { style } from '@angular/animations';
 
 declare global {
   interface Window {
     WebChat: any;
   }
 }
+
+declare var LeaderLine: any;
 
 interface Entity {
   label: string
@@ -28,7 +31,7 @@ interface Item {
   selector: 'app-main-view',
   templateUrl: './main-view.component.html',
   styleUrls: ['./main-view.component.scss'],
-  providers: [MessageService]
+  providers: [MessageService, ConfirmationService]
 })
 export class MainViewComponent implements OnInit, AfterContentInit, AfterViewInit, AfterViewChecked {
 
@@ -37,88 +40,86 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
   constructor(
-    private infoVisInteraction: InfoVisInteractionService,
+    public infoVisInteraction: InfoVisInteractionService,
     public training: TrainingService,
-    private nlg: NLGeneration,
-    private messageService: MessageService,
-    private contextCh: ContextCheckerService
+    public nlg: NLGeneration,
+    public messageService: MessageService,
+    public contextCh: ContextCheckerService,
+    public confirmationService: ConfirmationService,
+    public stateHandling: StateHandlingService
   ) { }
 
   public refreshInterval;
   public hoverInterval;
 
-  //Conversational Agent
-  public awaitingMessage = false;
-  public displayDialog = false;
-  public positionDialog = "right"
-  public chatbotMessage = ""
-  public directLine: any;
-  public store: any;
-  public componentMessage = null;
-  public messengerID = null;
-  public animate = false;
-  public noSpeechInteraction = true;
-
-  public conversationHistory = false
-
+  //Overall System
+  public firstBreakdown = true
   public overallMode = 2;
-  public correctionMode = false;
-  public editMode = false;
-  public compareMode = false;
-
-  availableProducts = [];
-
-
-  checked1: boolean = false;
-
-  filteredDataFields: string[] = []
-
-  selectedDataFields: string[] = []
-
-  errorCounter = 0;
+  public line: any = null;
+  public mouseOver = ""
 
 
   draggedDatafield: any = null;
   currentTarget: any = ""
 
+
+  filteredDataFields: string[] = []
+  selectedDataFields: string[] = []
+
+
+  //Conversational Agent
+  public awaitingMessage = false;
+  public directLine: any;
+  public store: any;
+  public componentMessage = null;
+  public messengerID = null;
+  public animate = false;
+  public conversationHistory = false
+  public speechInteraction = false
+  public lastSpeechInteraction = {}
+
+  //IterativeDialog
+  public displayDialog = false;
+  public positionDialog = "right"
+  public chatbotMessage = ""
+  public dialogWaitforNext = false;
+  public highlightChildren = 0;
+  public dialogBacklog = []
+
+
+
   //Training Mode
-  blockedAction = false
-  trainingMode = false
+  askForTraining = false
+  askForTrainingText = ""
+  deniedReasoning = false
+  public editMode = false;
+
+
+
+  //Context Mode
   currentReasoningTargetHover = ""
-  targetElement: HTMLElement;
+  displaySuggestionDialog = false;
+  displayAmbiguityDialogStart = false;
+  displayAmbiguityDialogEnd = false;
+  displaySuggestion = false
+  displaySuggestionHelp = false
+  blockedAction = false
+  pinnedSuggestion = false
+  visualizationSelected = false
+  highlightedVisualization = {icon: 'pi pi-angle-left', state: 'old'}
 
-  checked: boolean = false;
-
-  action = {
-    "VISUALIZATION": { "ADD": ["point"], "REMOVE": [] },
-    "x-Axis": { "ADD": ["Energy Type"], "REMOVE": [] },
-    "Values": { "ADD": ["Amount", "Projects"], "REMOVE": ["ALL"] },
-    "Color": { "ADD": ["State"], "REMOVE": [] },
-    "Aggregate": { "ADD": [{ "KEY": "ALL", "ID": "max" }], "REMOVE": [] },
-
-    "Highlight": { "ADD": ["Amount"], "REMOVE": [] },
-    "ColorHighlight": { "ADD": ["Florida", "New York"], "REMOVE": [] },
-    "Filter": { "ADD": [], "REMOVE": ["ALL"] },
-
-    "FilterC": { "ADD": [{ "KEY": "State", "ID": ["ALL"] }], "REMOVE": [{ "KEY": "Energy Type", "ID": ["Solar", "Wind"] }] },
-    "FilterN": { "ADD": [{ "Filter": "Projects", "GT": '500', "LT": "1000" }], "REMOVE": [] }
-  }
+  highlightOption = [
+    {icon: 'pi pi-angle-left', state: 'old'},
+    {icon: 'pi pi-angle-right', state: 'new'}
+  ]
 
 
+  hoverBlocker = ['generalDialog', 'suggestionDialog', 'nlClarification', 'displayConstraints', 'displayAmbiguities', 'acceptSuggestion', 'declineSuggestion', 'header', 'footer', 'pin', 'ConditionGuide', 'p-accordiontab']
+  excludeList = ['interactionBlocker', 'targetHover', 'suggestion', 'vis', 'visCanvas', 'visGrid', 'suggestionHook', 'pin', 'pr_id']
 
-
-
-
-  activeFilterAcc: { [characterName: string]: boolean } = {
-
-    "Energy Type": true,
-    "State": true,
-    "Party of Governor": true,
-    "Investment Type": true,
-    "Year": true,
-    "Projects": true,
-    "Amount": true,
-  }
+  /**
+   * Initialization of the System through Angular Lifecycle
+   */
 
 
   ngOnInit(): void {
@@ -127,6 +128,8 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
     this.visCanvas.currentVisualizationState['Datafields'] = [];
+
+
 
     this.directLine = window.WebChat.createDirectLine({
       secret: "I9zWGr48ptY.a56vpsiJsI-8omBWyUGKSSNoEkrotfvYVxFWLCWVgDc",
@@ -139,7 +142,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         if (action.type === 'DIRECT_LINE/POST_ACTIVITY') {
           //connect outgoing event handler and hand over reported data
           const event = new Event('webchatoutgoingactivity');
-          //action.payload.activity.channelData = { Visualizations: this.unitedStatesMap.chartType, Legend: this.unitedStatesMap.legend_Values ? this.unitedStatesMap.legend_Values : null, DataFields: this.unitedStatesMap.y_Axis_Values, Task: this.task, Treatment: this.treatment, UserID: this.userID };
+          action.payload.activity.channelData = { 'visState': this.visCanvas.currentVisualizationState, 'currentMode': this.overallMode };
           var find = '([0-9]),([0-9])';
           var re = new RegExp(find, 'g');
           action.payload.activity.text = String(action.payload.activity.text).replace(re, '$1$2');
@@ -180,7 +183,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
           sendBoxButtonColorOnHover: 'rgba(255,153, 0, 1)',
           sendBoxHeight: 30,
           bubbleMinHeight: 0,
-          bubbleMaxWidth: 450,
+          bubbleMaxWidth: 4500,
           paddingRegular: 5,
           suggestedActionHeight: 30
         },
@@ -197,32 +200,51 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large")
 
-  }
 
-  ngOnChanges(): void {
-    var target = document.getElementById("Datafields")
-    console.log(target)
+    for (var element in this.visCanvas.optionDictionary) {
+      this.visCanvas.optionDictionary[element].forEach(item => this.visCanvas.currentVisualizationState['FilterC'][element].push(item["value"]))
+    }
+
+    this.stateHandling.resetStateHistory(this)
+
+
   }
 
   public ngAfterViewInit(): void {
     window.addEventListener('webchatincomingactivity', this.webChatHandler.bind(this));
     document.addEventListener('mousemove', this.hoverTargetElement.bind(this))
-
+    document.addEventListener('drag', this.highlightEncoding.bind(this))
   }
 
   public ngAfterViewChecked(): void {
-    for(var i = 0; i < this.visCanvas.dataFields.length; i++){
-      var element = document.getElementById("Datafield_" + this.visCanvas.dataFields[i])
-      if(element["tagName"] == "DIV"){
-        element.parentElement.id = element.id
-        element.id = ""
+    for (var i = 0; i < this.visCanvas.dataFields.length; i++) {
+      var element = document.getElementById("Datafields_" + this.visCanvas.dataFields[i])
+      try {
+        if (element["tagName"] == "DIV") {
+          element.parentElement.id = element.id
+          element.id = ""
+        }
       }
+      catch {
+        console.log(element)
+      }
+      /*try {
+        var typeElement = document.getElementById("Datafields_" + this.visCanvas.dataFields[i] + "_Type")
+        typeElement.style["height"] = typeElement.clientWidth + "px"
+      }
+      catch {
+        console.log(typeElement)
+      }*/
     }
+
   }
 
 
 
   public ngAfterContentInit() {
+
+    LeaderLine.positionByWindowResize = false
+
     /**Chat Interface Manipulation */
     $("form[class^='webchat__send-box-text-box']").first().css("border", "1px solid black")
     $("div[class^='webchat__basic-transcript']").first().css("display", "none")
@@ -241,18 +263,149 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   }
 
+  /**
+   * Handling of Conversational Input
+   * @param event 
+   */
+
+  public async webChatHandler(event) {
+
+
+
+    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "message") {
+      this.positionDialog = "center"
+      this.displayDialog = true;
+
+
+
+      if (event["data"]["name"] == "Start Demonstration") {
+        document.getElementById("botMessage").innerHTML = ""
+
+        document.getElementById('nlInputInter')['style']['zIndex'] = '1101'
+
+        if (this.firstBreakdown) {
+
+          this.dialogBacklog = event["data"]["text"].split('$')
+          this.chatbotMessage = this.dialogBacklog.shift()
+          this.dialogWaitforNext = true
+        }
+        else {
+          this.chatbotMessage = event["data"]["text"].replace('$', '')
+        }
+
+      }
+      else if (event["data"]["name"] == "Ask Demonstration") {
+        var text = event["data"]["text"].split('$')
+        this.chatbotMessage = text.shift()
+        this.askForTrainingText = text.shift()
+
+      }
+      else {
+        if (this.overallMode != 2) {
+          document.getElementById("botMessage").innerHTML = ""
+        }
+        this.chatbotMessage = event["data"]["text"]
+      }
+
+
+
+    }
+    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "event") {
+      if (event["data"]["name"] == "Start Demonstration") {
+        await this.startDemonstration(event["data"]["value"]["Content"], event["data"]["value"]["Entities"], event["data"]["value"]["nlInput"])
+      }
+      else if (event["data"]["name"] == "PerformNLI") {
+        var configurationBefore = JSON.stringify(this.visCanvas.currentVisualizationState)
+        this.training.lastVisualizationState = JSON.parse(JSON.stringify(this.visCanvas.currentVisualizationState))
+        this.lastSpeechInteraction = {}
+        this.speechInteraction = true
+        if (event["data"]["value"].length > 0) {
+          await this.infoVisInteraction.processAction(this, this.visCanvas.currentVisualizationState, event["data"]["value"][0]["Action"], true, null)
+        }
+        this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+        this.stateHandling.addAction(this, "Speech")
+        this.speechInteraction = false
+        console.log(this.lastSpeechInteraction)
+
+        if (configurationBefore == JSON.stringify(this.visCanvas.currentVisualizationState)) {
+          this.askForTraining = true
+
+          this.directLine
+            .postActivity({
+              from: { id: "USER_ID", name: "USER_NAME" },
+              name: "askForTraining",
+              type: "event",
+            })
+            .subscribe(
+              id => {
+                if (sessionStorage.getItem('conversationID') == null) {
+                  sessionStorage.setItem('conversationID', this.directLine.conversationId);
+                };
+              },
+              error => console.log(`Error posting activity ${error}`)
+            );
+
+        }
+
+      }
+      else if (event["data"]["name"] == "finishedProcess") {
+        this.awaitingMessage = false;
+      }
+    }
+    else if (event["data"]["from"]["role"] == 'user' && event["data"]["type"] == "message") {
+      $(".webchat__send-box-text-box__input").attr("placeholder", "Your previous Natural Language Input: " + event["data"]["text"])
+      this.awaitingMessage = true;
+    }
+  }
+
+
+  adaptPanel(event, dataField) {
+
+    if (this.overallMode == 1) {
+      document.getElementsByClassName('p-multiselect-header')[0].children[0].id = "Filter_" + dataField + "_All"
+
+      for (var i = 0; i < this.visCanvas.optionDictionary[dataField].length; i++) {
+        var element = document.getElementById("Filter_" + dataField + "_Elements_" + this.visCanvas.optionDictionary[dataField][i]['label'])
+        try {
+          if (element["tagName"] == "DIV") {
+            element.parentElement.parentElement.id = element.id
+            element.id = ""
+          }
+        }
+        catch {
+          console.log(element)
+        }
+      }
+    }
+
+  }
+
+
+
+
   putTargetElement(id) {
     var element = document.getElementById(id)
+    while (element == null && id != '') {
+      var splitID = id.split('_')
+      splitID.pop()
+      id = splitID.join('_')
+      element = document.getElementById(id)
+    }
     var target = document.getElementById(id)
-    if (id != this.currentReasoningTargetHover) {
+    if (id != this.currentReasoningTargetHover && element != null) {
       let offsetTop = -3;
       let offsetLeft = -3;
       let scrollTop = 0;
 
-      var parent = element['parentElement']
-      while (parent) {
-        scrollTop += parent['scrollTop']
-        parent = parent['parentElement']
+      try {
+        var parent = element['parentElement']
+        while (parent) {
+          scrollTop += parent['scrollTop']
+          parent = parent['parentElement']
+        }
+      }
+      catch {
+        console.log(element)
       }
 
       while (element) {
@@ -262,66 +415,53 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       }
 
 
-
+      this.pinnedSuggestion = true
+      this.showConnection()
 
       var suggestion = document.getElementById('suggestion')
       suggestion['style']["display"] = 'flex'
-      suggestion['style']["width"] = '' + (target['offsetWidth'] + 21) + 'px'
+      if (target['clientWidth'] != 0) {
+        suggestion['style']["width"] = '' + (target['clientWidth'] + 21) + 'px'
+      }
+      else {
+        suggestion['style']["width"] = '' + (target['offsetWidth'] + 21) + 'px'
+      }
       suggestion['style']["height"] = '' + (target['offsetHeight'] + 6) + 'px'
       suggestion['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
       suggestion['style']["left"] = '' + offsetLeft + 'px'
     }
-
   }
 
-  getTargetElement(event) {
-    if (this.overallMode == 1 && !this.blockedAction) {
-      var allElements = <HTMLElement[]> document.elementsFromPoint(event.x, event.y)
-      var triggers =  allElements.filter(element => { return element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("p-multiselect-trigger") && element["tagName"] == "DIV" })
-      
-      if(allElements.some(element => element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("ng-trigger-overlayAnimation")))
-      {
+  async getTargetElement(event) {
+    if (this.overallMode == 1 && !this.blockedAction && !this.displayDialog) {
+      var allElements = <HTMLElement[]>document.elementsFromPoint(event.x, event.y)
+      try {
+        var triggers = allElements.filter(element => { return element["className"] != null && typeof (element["className"]) != "undefined" && element["nodeName"] != "svg" && (element["className"].includes("p-multiselect-trigger") || element["className"].includes('p-accordion-toggle-icon')) })
+      }
+      catch {
+        console.log(allElements)
+        var triggers = <HTMLElement[]>[]
+      }
+      /*if (allElements.some(element => element["className"] != null && typeof (element["className"]) != "undefined" && element["nodeName"] != "svg" && element["className"].includes("ng-trigger-overlayAnimation"))) {
 
       }
-      else if (triggers.length > 0) {
+      else */if (triggers.length > 0) {
         triggers[0].click()
       }
       else {
-        var target = allElements.filter(element => { return element.id != '' && element.id != 'interactionBlocker' && element.id != 'targetHover' && element.id != 'suggestion' && element.id != 'visCanvas' && element.id != 'visGrid'})
+        if (!allElements.some(inc => { for (var i = 0; i < this.hoverBlocker.length; i++) { if (inc.id.startsWith(this.hoverBlocker[i])) { return true } } return false }) && !allElements.some(inc => typeof (inc.classList) != 'undefined' && (inc.classList.contains("p-dialog") || inc.classList.contains("p-dialog-content") || inc.classList.contains("p-component-overlay")))) {
+          var target = allElements.filter(element => { return element.id != '' && !this.excludeList.some(comp => element.id.startsWith(comp)) })
 
-        if (target.length > 0 && !target.some(id => id.id == "nlClarification") && !target.some(id => id.id == "displayConstraints") && !target.some(id => id.id == "displayAmbiguities") && !target.some(id => id.id == "acceptSuggestion") && !target.some(id => id.id == "declineSuggestion")) {
-          var element = target[0]
-          if (target[0]['id'] != this.currentReasoningTargetHover) {
-            let offsetTop = -3;
-            let offsetLeft = -3;
-            let scrollTop = 0;
+          if (target.length > 0) {
+            this.displaySuggestion = false
+            this.displayAmbiguityDialogStart = false
 
-            var parent = element['parentElement']
-            while (parent) {
-              scrollTop += parent['scrollTop']
-              parent = parent['parentElement']
-            }
-
-            while (element) {
-              offsetTop += element['offsetTop'];
-              offsetLeft += element['offsetLeft'];
-              element = <HTMLElement>element['offsetParent'];
-            }
+            await this.putTargetElement(target[0]['id'])
+            this.contextCh.getPossibleInterpretations(this, target[0]['id'])
 
 
-
-
-            var suggestion = document.getElementById('suggestion')
-            suggestion['style']["display"] = 'flex'
-            suggestion['style']["width"] = '' + (target[0]['offsetWidth'] + 21) + 'px'
-            suggestion['style']["height"] = '' + (target[0]['offsetHeight'] + 6) + 'px'
-            suggestion['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
-            suggestion['style']["left"] = '' + offsetLeft + 'px'
           }
-        }
-        else {
-          var suggestion = document.getElementById('suggestion')
-          //suggestion['style']["display"] = 'none'
+
         }
       }
 
@@ -332,70 +472,180 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   hoverTargetElement(event) {
-    if (this.overallMode == 1 && !this.blockedAction) {
-      var allElements = <HTMLElement[]> document.elementsFromPoint(event.x, event.y)
-      var triggers =  allElements.filter(element => { return element["className"] != null && element["nodeName"] != "svg" && element["className"].includes("p-multiselect-trigger") && element["tagName"] == "DIV" })
-      
-      if(allElements.some(element => element["className"] != null && element["nodeName"] != "svg" &&  element["className"].includes("ng-trigger-overlayAnimation")))
-      {
+    if (this.overallMode == 1 && !this.blockedAction && !this.displayDialog) {
+      var allElements = <HTMLElement[]>document.elementsFromPoint(event.x, event.y)
+
+      try {
+        var triggers = allElements.filter(element => { return element["className"] != null && typeof (element["className"]) != "undefined" && element["nodeName"] != "svg" && (element["className"].includes("p-multiselect-trigger") || element["className"].includes('p-accordion-toggle-icon')) })
+      }
+      catch {
+        var triggers = <HTMLElement[]>[]
+      }
+      var noOverlay = true
+      try {
+        var condition = allElements.some(element => element["className"] && typeof (element["className"]) == "string" != null && element["nodeName"] != "svg" && element["className"].includes("ng-trigger-overlayAnimation"))
+      }
+      catch {
+        var condition = false
+      }
+      if (condition) {
+        noOverlay = false
+        for (var i = 0; i < allElements.length; i++) {
+          if (allElements[i]["className"].includes("ng-trigger-overlayAnimation")) {
+            break
+          }
+          else if (allElements[i].id != '' && allElements[i].id != 'interactionBlocker' && allElements[i].id != 'targetHover' && allElements[i].id != 'suggestion' && allElements[i].id != 'visCanvas' && allElements[i].id != 'visGrid' && allElements[i].id != 'suggestionHook') {
+            noOverlay = true
+            break
+          }
+        }
+      }
+      if (triggers.length > 0) {
+        if (false && document.getElementsByClassName('p-multiselect-header').length == 0) {
+          triggers[0].click()
+        }
+        document.body.style.cursor = "pointer";
 
       }
-      else if (triggers.length > 0) {
-        triggers[0].click()
-      }
-      else {
-      var target = document.elementsFromPoint(event.x, event.y);
-      target = target.filter(element => { return element.id != '' && element.id != 'interactionBlocker' && element.id != 'targetHover' && element.id != 'suggestion' && element.id != 'visCanvas' && element.id != 'visGrid'})
-      if (target.length > 0 && !target.some(id => id.id == "nlClarification") && !target.some(id => id.id == "displayConstraints") && !target.some(id => id.id == "displayAmbiguities") && !target.some(id => id.id == "acceptSuggestion") && !target.some(id => id.id == "declineSuggestion")) {
-        var element = target[0]
-        if (target[0]['id'] != this.currentReasoningTargetHover) {
-          let offsetTop = -3;
-          let offsetLeft = -3;
-          let scrollTop = 0;
+      else if (noOverlay) {
+        document.body.style.cursor = "default";
+        if (!allElements.some(inc => this.hoverBlocker.includes(inc.id)) && !allElements.some(inc => typeof (inc.classList) != 'undefined' && (inc.classList.contains("p-dialog") || inc.classList.contains("p-dialog-content") || inc.classList.contains("p-component-overlay")))) {
+          var target = allElements.filter(element => { return element.id != '' && !this.excludeList.some(comp => element.id.startsWith(comp)) })
 
-          var parent = element['parentElement']
-          while (parent) {
-            scrollTop += parent['scrollTop']
-            parent = parent['parentElement']
+          if (target.length > 0) {
+            if (target[0]['id'].startsWith("Filter_Energy Type_Elements_")) {
+              console.log("done")
+            }
+            var element = <HTMLElement>target[0]
+            if (target[0]['id'] != this.currentReasoningTargetHover && element != null) {
+
+              if (!this.pinnedSuggestion && !this.displayAmbiguityDialogStart) {
+                this.contextCh.getPossibleInterpretations(this, target[0]['id'])
+                var suggestion = document.getElementById('suggestion')
+                suggestion['style']["display"] = 'none'
+
+                if (this.line == null) {
+                  this.showConnection()
+                }
+                else {
+                  this.line.position()
+                }
+              }
+
+              let offsetTop = -3;
+              let offsetLeft = -3;
+              let scrollTop = 0;
+
+              var parent = element['parentElement']
+              while (parent) {
+                scrollTop += parent['scrollTop']
+                parent = parent['parentElement']
+              }
+
+              while (element) {
+                offsetTop += element['offsetTop'];
+                offsetLeft += element['offsetLeft'];
+                element = <HTMLElement>element['offsetParent'];
+              }
+
+              var targetHover = document.getElementById('targetHover')
+              targetHover['style']["display"] = 'flex'
+              if (target[0]['clientWidth'] != 0) {
+                targetHover['style']["width"] = '' + (target[0]['clientWidth'] + 6) + 'px'
+              }
+              else {
+                targetHover['style']["width"] = '' + (target[0]['offsetWidth'] + 6) + 'px'
+              }
+              targetHover['style']["height"] = '' + (target[0]['offsetHeight'] + 6) + 'px'
+              targetHover['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
+              targetHover['style']["left"] = '' + offsetLeft + 'px'
+            }
           }
-
-          while (element) {
-            offsetTop += element['offsetTop'];
-            offsetLeft += element['offsetLeft'];
-            element = element['offsetParent'];
+          else {
+            var targetHover = document.getElementById('targetHover')
+            targetHover['style']["display"] = 'none'
+            if (!this.pinnedSuggestion) {
+              this.removeConnection()
+              this.displaySuggestionDialog = false
+              this.contextCh.currentTarget = ""
+            }
           }
-
-
-
-
+        }
+        else {
           var targetHover = document.getElementById('targetHover')
-          targetHover['style']["display"] = 'block'
-          targetHover['style']["width"] = '' + (target[0]['offsetWidth'] + 6) + 'px'
-          targetHover['style']["height"] = '' + (target[0]['offsetHeight'] + 6) + 'px'
-          targetHover['style']["top"] = '' + (offsetTop - scrollTop) + 'px'
-          targetHover['style']["left"] = '' + offsetLeft + 'px'
+          targetHover['style']["display"] = 'none'
+          if (!this.pinnedSuggestion) {
+            this.removeConnection()
+            this.displaySuggestionDialog = false
+            this.contextCh.currentTarget = ""
+          }
         }
       }
       else {
         var targetHover = document.getElementById('targetHover')
         targetHover['style']["display"] = 'none'
+        if (!this.pinnedSuggestion) {
+          this.removeConnection()
+          this.displaySuggestionDialog = false
+          this.contextCh.currentTarget = ""
+        }
       }
     }
+    else if(this.overallMode == 2){
+      this.mouseOver = ''
     }
   }
 
-  acceptSuggestion(event) {
 
+  showSuggestions(mode) {
+    this.displaySuggestionHelp = false
+    if (this.contextCh.suggestions.length > 0) {
+      this.displayDialog = false
+      this.displaySuggestion = true
+      this.displaySuggestionDialog = true
+
+      if (mode == "next") {
+        this.blockedAction = true
+        this.contextCh.suggestionsPrevious = true
+        this.contextCh.suggestionsIndex += 1
+        if (this.contextCh.suggestionsIndex >= this.contextCh.suggestions.length - 1) {
+          this.contextCh.suggestionsNext = false
+        }
+      }
+      else if (mode == "previous") {
+        this.blockedAction = true
+        this.contextCh.suggestionsNext = true
+        this.contextCh.suggestionsIndex -= 1
+        if (this.contextCh.suggestionsIndex <= 0) {
+          this.contextCh.suggestionsPrevious = false
+        }
+      }
+      try {
+        this.contextCh.getPossibleInterpretations(this, this.contextCh.suggestions[this.contextCh.suggestionsIndex])
+        this.putTargetElement(this.contextCh.suggestions[this.contextCh.suggestionsIndex])
+        this.displaySuggestion = true
+      }
+      catch {
+        console.log(this.contextCh.suggestionsIndex)
+      }
+
+    }
   }
 
-  declineSuggestion(event) {
-    this.blockedAction = true
+
+  declineSuggestion(event, target) {
+    this.pinnedSuggestion = false
+    this.removeConnection()
+
+    if (target == "dialog") {
+      this.displaySuggestion = false
+    }
+    else {
+      this.blockedAction = true
+    }
     document.getElementById('suggestion')["style"]["display"] = "none"
-  }
-
-  searchSuggestion(event) {
-    this.blockedAction = true
-    this.putTargetElement("Color_Constraint")
+    this.displaySuggestionDialog = false
+    this.contextCh.currentTarget = ""
   }
 
   initialize() {
@@ -416,13 +666,16 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       var counter = 0;
       for (var i = 0; i < axis.length; i++) {
 
-        if (axis[i]["ariaLabel"] != null ) {
+        if (axis[i]["ariaLabel"] != null) {
           var bounds = axis[i].getBoundingClientRect()
 
           var element = document.getElementById("Canvas_Axis-" + counter)
 
-          if(axis[i]["ariaLabel"].startsWith("X-axis")){
+          if (axis[i]["ariaLabel"].startsWith("X-axis")) {
             element = document.getElementById("Canvas_x-Axis")
+          }
+          else {
+            counter++
           }
 
           element["style"]["display"] = "block"
@@ -430,18 +683,23 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
           element["style"]["left"] = bounds.left.toString() + "px"
           element["style"]["width"] = bounds.width.toString() + "px"
           element["style"]["height"] = bounds.height.toString() + "px"
-          counter++
+
         }
       }
 
-      if (this.errorCounter > 0) {
-        this.errorCounter -= 1
-      }
-      else {
-        document.getElementById("errorMessage")["style"]["display"] = "none"
+      if (this.overallMode == 1 && this.contextCh.suggestions.length > 1) {
+        if (this.contextCh.suggestionsIndex > 0) {
+          this.contextCh.suggestionsPrevious = true
+        }
+        if (this.contextCh.suggestionsIndex < this.contextCh.suggestions.length - 1) {
+          this.contextCh.suggestionsNext = true
+        }
       }
 
     }, 1000)
+
+
+
 
   }
 
@@ -449,92 +707,193 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     console.log(data)
   }
 
-  public async webChatHandler(event) {
-
-
-
-    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "message") {
-      this.displayDialog = true;
-
-      if (!this.correctionMode) {
-        document.getElementById("botMessage").innerHTML = ""
-      }
-      this.chatbotMessage = event["data"]["text"]
-
-    }
-    if (event["data"]["from"]["role"] == 'bot' && event["data"]["type"] == "event") {
-      if (event["data"]["name"] == "Start Demonstration") {
-        await this.startDemonstration(event["data"]["value"]["Content"], event["data"]["value"]["Entities"])
-      }
-      else if (event["data"]["name"] == "PerformNLI") {
-        event["data"]["value"]["Content"]["Action"].forEach(action => {
-          this.infoVisInteraction.processAction(this, this.visCanvas.currentVisualizationState, action, true, null)
-        })
-        this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
-      }
-      else if (event["data"]["name"] == "finishedProcess") {
-        this.awaitingMessage = false;
-      }
-    }
-    else if (event["data"]["from"]["role"] == 'user' && event["data"]["type"] == "message") {
-      $(".webchat__send-box-text-box__input").attr("placeholder", "Current NL input: " + event["data"]["text"])
-      this.awaitingMessage = true;
-    }
-
-
-
-  }
-
-  async startDemonstration(possibleActions, entities) {
-    this.correctionMode = true
+  async startDemonstration(possibleActions, entities, nlInput) {
+    this.deniedReasoning = false
     this.training.initialEntities = entities
+    this.training.nlInput = nlInput
+    this.overallMode = 0
+
+    this.visCanvas.mode = this.overallMode
+
+    this.contextCh.constraints = []
+    this.contextCh.constraintText = []
+
     await this.training.initializeTraining(this, possibleActions)
     await this.adaptVisualizationSize(0)
+
+    this.stateHandling.resetStateHistory(this)
 
   }
 
   async continueDemonstration() {
-    this.correctionMode = false
-    this.visCanvas.mode = 'past'
+    this.chatbotMessage = ""
+    this.visualizationSelected = false
+    this.directLine
+      .postActivity({
+        from: { id: "USER_ID", name: "USER_NAME" },
+        name: "startReasoning",
+        type: "event",
+      })
+      .subscribe(
+        id => {
+          if (sessionStorage.getItem('conversationID') == null) {
+            sessionStorage.setItem('conversationID', this.directLine.conversationId);
+          };
+        },
+        error => console.log(`Error posting activity ${error}`)
+      );
 
-    this.displayDialog = true;
-    this.chatbotMessage = "Thank you for specifying the visual elements that are crucial for understanding your interpretation of the NL Input. \r\n You are now seeing the state of the data visualization tool before performing the NL input. \r\n I have highlighted some visual elements that I think could be relevant!"
 
-    this.visCanvas.currentVisualizationState = this.training.initialVisualizationState
+
+    if (this.hoverInterval) {
+      clearInterval(this.hoverInterval);
+    }
+    this.hoverInterval = setInterval(() => {
+      if (this.overallMode == 1 && this.displaySuggestionDialog && typeof (this.line != "undefined") && this.line != null) {
+        this.line.position()
+      }
+      if (!this.pinnedSuggestion && document.getElementById('targetHover') != null && document.getElementById('targetHover')['style']["display"] == 'none' && this.line != null) {
+        this.removeConnection()
+      }
+    }, 100)
+
+
+    this.overallMode = 1
+    this.visCanvas.mode = this.overallMode
+    this.firstBreakdown = false
+    this.displayDialog = true
+
+
+    this.contextCh.constraints = this.training.possibleActions[this.training.selectedAmbiguity]["Constraints"]
+    this.contextCh.constraintText = this.training.possibleActions[this.training.selectedAmbiguity]["ConstraintsText"]
+
+    this.contextCh.finalActions = this.training.possibleActions[this.training.selectedAmbiguity]
+
+    this.contextCh.getAmbiguousNumber(this)
+
+    await this.contextCh.deriveSuggestions(this)
+
+    this.visCanvas.currentVisualizationState = JSON.parse(JSON.stringify(this.training.initialVisualizationState))
 
     await this.adaptVisualizationSize(1)
 
-    this.putTargetElement("Year_temporal")
+    this.nlg.initializeUnderstandingDisplay(this, this.contextCh.finalActions["Action"], "reasoning")
   }
 
-  endDemonstration(finished) {
-    this.visCanvas.mode = 'current'
-
-    this.adaptVisualizationSize(2)
+  async endDemonstration(event, finished) {
+    if (this.hoverInterval) {
+      clearInterval(this.hoverInterval);
+    }
+    this.displaySuggestionDialog = false
+    this.contextCh.currentTarget = ""
+    this.firstBreakdown = false
 
     if (finished) {
-      this.messageService.add({ severity: 'success', summary: 'New NL input', detail: 'You have successfully trained a new NL input.' });
+      if (this.deniedReasoning || this.overallMode == 1) {
 
-      this.directLine
-        .postActivity({
-          from: { id: "USER_ID", name: "USER_NAME" },
-          name: "endTrainingMode",
-          type: "event",
-          value: {
-            'sequence': this.training.possibleActions[this.training.selectedAmbiguity]["Action"],
-            'initialState': this.training.initialVisualizationState
+
+        if (this.overallMode == 1) {
+          this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
+          this.nlg.initializeUnderstandingDisplay(this, {}, "reasoning")
+        }
+
+        this.overallMode = 2
+        this.visCanvas.mode = this.overallMode
+        this.adaptVisualizationSize(2)
+        this.messageService.add({ severity: 'success', summary: 'New Natural Language Input', detail: 'You have successfully trained a new Natural Language Input.' });
+
+        console.log({
+          'sequence': this.training.possibleActions[this.training.selectedAmbiguity]["Action"],
+          'initialState': this.training.initialVisualizationState,
+          'constraints': { "triples": this.contextCh.constraints, "text": this.contextCh.constraintText }
+        })
+
+        this.directLine
+          .postActivity({
+            from: { id: "USER_ID", name: "USER_NAME" },
+            name: "endTrainingMode",
+            type: "event",
+            value: {
+              'sequence': this.training.possibleActions[this.training.selectedAmbiguity]["Action"],
+              'initialState': this.training.initialVisualizationState,
+              'constraints': { "triples": this.contextCh.constraints, "text": this.contextCh.constraintText },
+              'ambiguityConstraint': this.contextCh.ambiguitiesEnd
+            }
+          })
+          .subscribe(
+            id => {
+              if (sessionStorage.getItem('conversationID') == null) {
+                sessionStorage.setItem('conversationID', this.directLine.conversationId);
+              };
+            },
+            error => console.log(`Error posting activity ${error}`)
+          );
+
+        this.visCanvas.possibleVisualizationStates = []
+        this.training.possibleActions = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
+        this.nlg.initializeUnderstandingDisplay(this, {}, "training")
+        this.contextCh.suggestions = []
+        this.stateHandling.resetStateHistory(this)
+        this.contextCh.ambiguitiesStart = []
+        this.contextCh.ambiguitiesEnd = []
+      }
+      else {
+        var nlInput = ""
+        for (var i = 0; i < this.training.nlInput.length; i++) {
+          nlInput += this.training.nlInput[i]["Text"] + " "
+        }
+
+        var number = 0
+
+        this.contextCh.http.post<any>(this.contextCh.restAPI + '/ambiguitiesNumber', { command: nlInput, Constraints: this.contextCh.constraints, currentConfiguration: this.training.initialVisualizationState, finalActions: this.training.possibleActions[this.training.selectedAmbiguity], ambiguitiesEnd: [] }).subscribe({
+          next: data => {
+
+            var number = data['Ambiguities']
+            if (number > 0) {
+              this.confirmationService.confirm({
+                target: event.target,
+                message: 'Unfortunately, I detected ' + number + ' conflicting interpretation(s) for your Natural Language Input. Can you help me better understand how the data fields selected and configuration of the data visualization influenced your interpretation of the Natural Language Input?',
+                icon: 'pi pi-exclamation-triangle',
+                accept: () => {
+                  this.continueDemonstration()
+                },
+                reject: () => {
+                  this.endDemonstration(event, true)
+                }
+              });
+
+
+            }
+            else {
+              this.confirmationService.confirm({
+                target: event.target,
+                message: 'Can you help me better understand how the data fields selected and configuration of the data visualization influenced your interpretation of the Natural Language Input?',
+                icon: 'pi pi-exclamation-triangle',
+                accept: () => {
+                  this.continueDemonstration()
+                },
+                reject: () => {
+                  this.endDemonstration(event, true)
+                }
+              });
+            }
+          },
+          error: error => {
+            console.log("noting")
           }
         })
-        .subscribe(
-          id => {
-            if (sessionStorage.getItem('conversationID') == null) {
-              sessionStorage.setItem('conversationID', this.directLine.conversationId);
-            };
-          },
-          error => console.log(`Error posting activity ${error}`)
-        );
+        this.deniedReasoning = true
+
+      }
     }
     else {
+
+      if (this.overallMode == 1) {
+        this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
+      }
+
+      this.adaptVisualizationSize(2)
+      this.visCanvas.mode = this.overallMode
       this.messageService.add({ severity: 'error', summary: 'Training Canceled', detail: 'You have canceled the training.' });
 
       this.directLine
@@ -551,6 +910,14 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
           },
           error => console.log(`Error posting activity ${error}`)
         );
+
+      this.visCanvas.possibleVisualizationStates = []
+      this.training.possibleActions = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
+      this.nlg.initializeUnderstandingDisplay(this, {}, "training")
+      this.stateHandling.resetStateHistory(this)
+      this.contextCh.ambiguitiesStart = []
+      this.contextCh.ambiguitiesEnd = []
+      this.contextCh.suggestions = []
     }
 
     /*window.removeEventListener('click', this.clickHighlight, false)
@@ -562,40 +929,33 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   async adaptVisualizationSize(target) {
     this.overallMode = target
+    this.visCanvas.mode = this.overallMode
 
 
     if (target == 0) {
       document.getElementById("displayAmbiguities")["style"]["display"] = "block"
       document.getElementById("visGrid")["style"]["height"] = "50%"
+      document.getElementById("nlClarification")["style"]["height"] = "10%"
       document.getElementById("visCanvas")["className"] = "col-6 col-offset-1"
       document.getElementById("actionSequenceMeta")["style"]["display"] = "block"
-      document.getElementById("submitButton")["style"]["display"] = "flex"
-      document.getElementById("continueButton")["style"]["display"] = "flex"
-      document.getElementById("cancelButton")["style"]["display"] = "flex"
+
 
     }
     else if (target == 1) {
       document.getElementById("displayConstraints")["style"]["display"] = "block"
       document.getElementById("displayAmbiguities")["style"]["display"] = "none"
-      document.getElementById("visGrid")["style"]["height"] = "60%"
-
+      document.getElementById("visGrid")["style"]["height"] = "40%"
+      document.getElementById("nlClarification")["style"]["height"] = "10%"
       document.getElementById("visCanvas")["className"] = "col-12"
       document.getElementById("actionSequenceMeta")["style"]["display"] = "none"
-      document.getElementById("continueButton")["style"]["display"] = "none"
-      document.getElementById("submitButton")["style"]["display"] = "flex"
-
-
     }
-
     else {
       document.getElementById("displayAmbiguities")["style"]["display"] = "none"
       document.getElementById("displayConstraints")["style"]["display"] = "none"
       document.getElementById("visGrid")["style"]["height"] = "80%"
+      document.getElementById("nlClarification")["style"]["height"] = "15%"
       document.getElementById("visCanvas")["className"] = "col-12"
       document.getElementById("actionSequenceMeta")["style"]["display"] = "none"
-      document.getElementById("continueButton")["style"]["display"] = "none"
-      document.getElementById("submitButton")["style"]["display"] = "none"
-      document.getElementById("cancelButton")["style"]["display"] = "none"
       document.getElementById('suggestion')["style"]["display"] = "none"
 
     }
@@ -631,14 +991,13 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[ambiguity]
 
-    this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[ambiguity]["Action"])
+    this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[ambiguity]["Action"], "training")
 
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+
+    this.stateHandling.addAction(this, "Mouse")
   }
 
-  changeAmbiguityCompare(event, ambiguity) {
-    this.compareMode = !this.compareMode
-  }
 
   changeEditMode(event) {
     if (event.checked) {
@@ -676,13 +1035,13 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   async closeITLElement(event) {
-    await this.training.removeAction(this, event.currentTarget.parentElement.parentElement.parentElement.id.split("_"))
+    await this.training.removeAction(this, event.currentTarget.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.id.split("_"))
 
     this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[this.training.selectedAmbiguity])
 
     this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
 
-    await this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[this.training.selectedAmbiguity]["Action"])
+    await this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[this.training.selectedAmbiguity]["Action"], "training")
 
     await this.visCanvas.createVisualization(this, this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity], "#Ambiguity_" + this.training.selectedAmbiguity, "small")
 
@@ -690,6 +1049,13 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   showHistory(event) {
+    this.overallMode += 1
+    if (this.overallMode > 2) {
+      this.overallMode = 0
+    }
+    this.adaptVisualizationSize(this.overallMode)
+
+
     if (event.checked) {
       var sheight = document.querySelectorAll("[class$=webchat__basic-transcript__scrollable]")[0].scrollHeight;
       document.querySelectorAll("[class$=webchat__basic-transcript__scrollable]")[0].scrollTo({ left: 0, top: sheight, behavior: 'auto' });
@@ -704,22 +1070,36 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     }
   }
 
-  mouseChange(event, state) {
-    /*
-    if (this.draggedDatafield != null) {
-      if (state == "enter") {
-        this.currentTarget = event["currentTarget"]["id"]
-        event["currentTarget"]["style"]["backgroundColor"] = "#a6192e2e"
+
+
+  /**
+   * 
+   * INFOVIS Interaction via Mouse
+   */
+
+   mouseTarget(target){
+    if (this.mouseOver == target && this.draggedDatafield != null){
+      
+      return true
+    }
+    else{
+      return false
+    }
+    
+   }
+
+   highlightEncoding(event) {
+    if(this.overallMode == 2 || this.overallMode == 0 ){
+      var allElements = <HTMLElement[]>document.elementsFromPoint(event.x, event.y)
+      var target = allElements.filter(element => { return element.id == 'x-Axis' || element.id == 'Values' || element.id == 'Color' || element.id == 'Filter_Adding'})
+      if(target.length > 0){
+        this.mouseOver = target[0].id
       }
-      else if (state == "leave" && this.currentTarget != "" ) {
-        document.getElementById(this.currentTarget)["style"]["backgroundColor"] = ""
+      else{
+        this.mouseOver = ''
       }
     }
-      */
   }
-
-
-
 
   dragStart(event: any, dataField: string) {
     this.draggedDatafield = dataField;
@@ -735,6 +1115,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   async drop(event: any, target: string) {
+
 
     if (this.draggedDatafield) {
       if (target == "xAxis") {
@@ -752,7 +1133,9 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
       this.draggedDatafield = null;
     }
+
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
   async select(event: any, target: string) {
@@ -766,6 +1149,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       await this.infoVisInteraction.addLegends(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
   async unselect(event: any, target: string) {
@@ -778,7 +1162,11 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     else if (target == "color") {
       await this.infoVisInteraction.removeLegends(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
+    else if (target == "filter") {
+      await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [event], true, null)
+    }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
 
@@ -818,30 +1206,34 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       }
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
   async deleteFilter(event: any, target: any) {
     await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [target], true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
 
   async changeVisualizationMouse(target: string) {
+
     await this.infoVisInteraction.changeVisualization(this, this.visCanvas.currentVisualizationState, target, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
   async changeAggregateMouse(event, target) {
     await this.infoVisInteraction.changeAggregate(this, this.visCanvas.currentVisualizationState, target, event.value, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
   showErrorMessage() {
     document.getElementById("errorMessage")["style"]["display"] = "block"
-    this.errorCounter = 4
   }
 
-  changeNumFilterMouse(event, target, boundary) {
+  async changeNumFilterMouse(event, target, boundary) {
     if (event.value != null) {
       var filter: any = { "Filter": target, [boundary]: event.value }
       var verb = "REMOVE"
@@ -865,57 +1257,288 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         }
       }
 
-      this.infoVisInteraction.changeNumFilter(this, this.visCanvas.currentVisualizationState, [filter], verb, true, null)
+      await this.infoVisInteraction.changeNumFilter(this, this.visCanvas.currentVisualizationState, [filter], verb, true, null)
       this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+      this.stateHandling.addAction(this, "Mouse")
     }
 
   }
 
-  changeCatFilterMouse(event, target) {
+  async changeCatFilterMouse(event, target) {
     var filter = {
       "KEY": target, "ID": [event.itemValue]
     }
     if (typeof (event.itemValue) == "undefined" && event.value.length == 0) {
-      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
+      await this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
     }
     else if (typeof (event.itemValue) == "undefined" && event.value.length > 1 && this.visCanvas.optionDictionary[target].every(item => event.value.includes(item["value"]))) {
-      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
+      await this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [{ "KEY": target, "ID": ["ALL"] }], true, null)
     }
     else if (event.value.includes(event.itemValue)) {
       this.visCanvas.currentVisualizationState["FilterC"][target] = this.visCanvas.currentVisualizationState["FilterC"][target].filter(element => element != event.itemValue)
-      this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
+      await this.infoVisInteraction.addCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
     }
     else {
       this.visCanvas.currentVisualizationState["FilterC"][target].push(event.itemValue)
-      this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
+      await this.infoVisInteraction.removeCatFilter(this, this.visCanvas.currentVisualizationState, [filter], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
   }
 
-  changeActiveFilterMouse(event, target, boundary) {
-    this.infoVisInteraction.changeActiveFilter(this, this.visCanvas.currentVisualizationState, target, boundary, event.checked, true, null)
+  async changeActiveFilterMouse(event, target, boundary) {
+    await this.infoVisInteraction.changeActiveFilter(this, this.visCanvas.currentVisualizationState, target, boundary, event.checked, true, null)
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
+
   }
 
 
-  handleChange(event: any, target: any) {
+  async handleChange(event: any, target: any) {
     if (this.visCanvas.currentVisualizationState['CheckedHighlight'][this.visCanvas.currentVisualizationState["Values"][target]] && this.visCanvas.currentVisualizationState["Values"].length > 1) {
-      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
+      await this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
     }
     else if (this.visCanvas.currentVisualizationState["Values"].length > 1) {
-      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
+      await this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, this.visCanvas.currentVisualizationState["Values"][target], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
+
   }
 
-  handleChangeStar(event: any, target: any) {
-    if (this.visCanvas.currentVisualizationState['CheckedHighlight'][target]) {
-      this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
+  async handleChangeStar(event: any, target: any) {
+    if (!this.visCanvas.currentVisualizationState['CheckedHighlight'][target]) {
+      await this.infoVisInteraction.removeAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
     }
     else {
-      this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
+      await this.infoVisInteraction.addAxisHighlight(this, this.visCanvas.currentVisualizationState, target, true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    this.stateHandling.addAction(this, "Mouse")
+  }
+
+  handleHideDialog(event: any, target) {
+    if (this.dialogWaitforNext && this.dialogBacklog.length > 0 && this.overallMode == 0 && target == "Show") {
+      this.positionDialog = "bottom-right"
+      this.displayDialog = true
+      document.getElementById('nlInputInter')['style']['zIndex'] = '1'
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1101'
+      document.getElementById('ambiguityCarousel')['style']['pointer-events'] = 'none'
+
+      this.chatbotMessage = this.dialogBacklog.shift()
+
+      if (this.dialogBacklog.length == 0) {
+        this.dialogWaitforNext = false
+      }
+
+      this.highlightChildren = 1
+    }
+    else if (this.overallMode == 0) {
+      document.getElementById('nlInputInter')['style']['zIndex'] = '1'
+
+      document.getElementById('ambiguityCarousel')['style']['pointer-events'] = ''
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1'
+
+      document.getElementById('Datafields')['style']['zIndex'] = '1'
+      document.getElementById('Datafields')['style']['pointer-events'] = ''
+
+      document.getElementById('Encodings')['style']['zIndex'] = '1'
+      document.getElementById('Encodings')['style']['pointer-events'] = ''
+
+      document.getElementById('Filter')['style']['zIndex'] = '1'
+      document.getElementById('Filter')['style']['pointer-events'] = ''
+
+      document.getElementById('visCanvas')['style']['zIndex'] = '1'
+      document.getElementById('visCanvas')['style']['pointer-events'] = ''
+
+      document.getElementById('botWin')['style']['zIndex'] = '1'
+      document.getElementById('botWin')['style']['pointer-events'] = ''
+
+      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '1'
+      document.getElementById('actionSequenceMeta')['style']['pointer-events'] = ''
+    }
+    else if (this.overallMode == 1 && this.contextCh.suggestions.length > 0 && target == "Show") {
+      this.showSuggestions('current')
+    }
+    else {
+      document.getElementById('nlInputInter')['style']['zIndex'] = '1'
+    }
+  }
+
+  showHowTraining() {
+    this.positionDialog = 'top-right'
+    if (this.highlightChildren == 1) {
+      var text = document.getElementById("chatbotDialog").children[0].children[0].innerHTML
+      document.getElementById("chatbotDialog").children[0].children[0].innerHTML = text.replace('<strong>', '').replace('</strong>', '')
+      document.getElementById("chatbotDialog").children[0]["style"]["font-weight"] = "normal !important"
+
+
+      document.getElementById("chatbotDialog").children[1]["style"]["font-weight"] = "bold"
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1'
+      document.getElementById('ambiguityCarousel')['style']['pointer-events'] = ''
+
+      document.getElementById('Datafields')['style']['zIndex'] = '1101'
+      document.getElementById('Datafields')['style']['pointer-events'] = 'none'
+
+      document.getElementById('Encodings')['style']['zIndex'] = '1101'
+      document.getElementById('Encodings')['style']['pointer-events'] = 'none'
+
+      document.getElementById('Filter')['style']['zIndex'] = '1101'
+      document.getElementById('Filter')['style']['pointer-events'] = 'none'
+
+      document.getElementById('visCanvas')['style']['zIndex'] = '1101'
+      document.getElementById('visCanvas')['style']['pointer-events'] = 'none'
+
+      document.getElementById('botWin')['style']['zIndex'] = '1101'
+      document.getElementById('botWin')['style']['pointer-events'] = 'none'
+
+
+    }
+    else if (this.highlightChildren == 2) {
+      document.getElementById("chatbotDialog").children[1]["style"]["font-weight"] = "normal"
+      document.getElementById("chatbotDialog").children[2]["style"]["font-weight"] = "bold"
+
+      document.getElementById('Datafields')['style']['zIndex'] = '1'
+      document.getElementById('Datafields')['style']['pointer-events'] = ''
+
+      document.getElementById('Encodings')['style']['zIndex'] = '1'
+      document.getElementById('Encodings')['style']['pointer-events'] = ''
+
+      document.getElementById('Filter')['style']['zIndex'] = '1'
+      document.getElementById('Filter')['style']['pointer-events'] = ''
+
+      document.getElementById('visCanvas')['style']['zIndex'] = '1'
+      document.getElementById('visCanvas')['style']['pointer-events'] = ''
+
+      document.getElementById('botWin')['style']['zIndex'] = '1'
+      document.getElementById('botWin')['style']['pointer-events'] = ''
+
+      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '1101'
+      document.getElementById('actionSequenceMeta')['style']['pointer-events'] = 'none'
+    }
+    this.highlightChildren += 1
+  }
+
+  addConstraint(targetText) {
+    //this.displaySuggestionDialog = false;
+    this.contextCh.addConstraint(this, targetText)
+  }
+
+  removeConstraint(event, target) {
+    this.contextCh.removeConstraint(this, target)
+  }
+
+  async stateHandlingFunction(action) {
+    if (action == "undo") {
+      if (this.overallMode == 2 && this.stateHandling.stateHistory[this.stateHandling.activeElement]["Origin"] == "Speech" && this.stateHandling.stateHistory[this.stateHandling.activeElement]["ID"] == this.stateHandling.speechID) {
+        this.askForTraining = true
+
+        this.directLine
+          .postActivity({
+            from: { id: "USER_ID", name: "USER_NAME" },
+            name: "askForTraining",
+            type: "event",
+          })
+          .subscribe(
+            id => {
+              if (sessionStorage.getItem('conversationID') == null) {
+                sessionStorage.setItem('conversationID', this.directLine.conversationId);
+              };
+            },
+            error => console.log(`Error posting activity ${error}`)
+          );
+
+      }
+      await this.stateHandling.undo(this)
+
+    }
+    else if (action == "redo") {
+      this.stateHandling.redo(this)
+    }
+  }
+
+  askForTrainingAnswer(answer) {
+    this.displayDialog = false
+    this.askForTraining = false
+    if (answer) {
+      this.visCanvas.currentVisualizationState = JSON.parse(JSON.stringify(this.training.lastVisualizationState))
+      this.directLine
+        .postActivity({
+          from: { id: "USER_ID", name: "USER_NAME" },
+          name: "startDemonstration",
+          type: "event",
+        })
+        .subscribe(
+          id => {
+            if (sessionStorage.getItem('conversationID') == null) {
+              sessionStorage.setItem('conversationID', this.directLine.conversationId);
+            };
+          },
+          error => console.log(`Error posting activity ${error}`)
+        );
+    }
+  }
+
+  showConnection() {
+    var startingElement = document.querySelector('#suggestionBot');
+
+    if (this.displayAmbiguityDialogStart) {
+      startingElement = document.querySelector('#suggestionBotStart');
+    }
+
+    var endingElement = document.querySelector('#suggestionHook');
+
+
+    if (!this.pinnedSuggestion) {
+      endingElement = document.querySelector('#targetHover');
+    }
+
+
+    if (typeof (this.line) != "undefined" && this.line != null) {
+      this.line.remove()
+      this.line = null
+    }
+
+    if (typeof (startingElement) != "undefined" && typeof (endingElement) != "undefined" && startingElement != null && endingElement != null) {
+      this.line = new LeaderLine(startingElement, endingElement, { color: '#a6192e', endPlug: 'square' });
+    }
+
+  }
+  removeConnection() {
+    if (typeof (this.line) != "undefined" && this.line != null) {
+      this.line.remove()
+      this.line = null
+    }
+  }
+
+  processTooltip(input) {
+    var text = input.toLowerCase()
+    if (this.visCanvas.datafieldTypes.includes(text)) {
+      return this.visCanvas.dataFieldsConfigTranslate[text] + " data field"
+    }
+    return text
+  }
+
+  getAmbiguousActions() {
+    this.contextCh.getAmbiguousActionsEnd(this, true)
+  }
+
+  changePrevVisualization() {
+    if (this.highlightedVisualization['state'] == 'old') {
+      this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+    }
+    else {
+      this.visCanvas.createVisualization(this, this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity], "#vis", "large");
+
+    }
+
+  }
+
+  openDialogSuggestion(){
+    this.contextCh.getAmbiguousActionsEnd(this, false)
+    this.contextCh.getAmbiguousActionsStart(this, 'during', false)
+    this.displaySuggestionHelp = true
+
   }
 
 }

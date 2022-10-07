@@ -2,6 +2,8 @@ import { NgModule } from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule } from '@angular/common/http';
+
 
 import { MarkdownModule } from 'ngx-markdown';
 
@@ -13,6 +15,7 @@ import { InfoVisInteractionService } from './info-vis-interaction.service';
 import { TrainingService } from './training.service';
 import { NLGeneration } from './NLGeneration.service';
 import {ContextCheckerService } from './contextChecker.service';
+import {StateHandlingService } from './stateHandling.service';
 
 
 //import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
@@ -34,12 +37,14 @@ import {FieldsetModule} from 'primeng/fieldset';
 import {CardModule} from 'primeng/card';
 import {CarouselModule} from 'primeng/carousel';
 import {BadgeModule} from 'primeng/badge';
-import {StepsModule} from 'primeng/steps';
 import {TooltipModule} from 'primeng/tooltip';
 import {DialogModule} from 'primeng/dialog';
 import {ToastModule} from 'primeng/toast';
 import {OverlayPanelModule} from 'primeng/overlaypanel';
 import {ProgressSpinnerModule} from 'primeng/progressspinner';
+import {ConfirmPopupModule} from 'primeng/confirmpopup';
+import {SelectButtonModule} from 'primeng/selectbutton';
+
 
 
 
@@ -57,6 +62,7 @@ import {ProgressSpinnerModule} from 'primeng/progressspinner';
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    HttpClientModule,
     MarkdownModule.forRoot(),
     AppRoutingModule,
     FormsModule,
@@ -81,9 +87,11 @@ import {ProgressSpinnerModule} from 'primeng/progressspinner';
     DialogModule,
     ToastModule,
     OverlayPanelModule,
-    ProgressSpinnerModule
+    ProgressSpinnerModule,
+    ConfirmPopupModule,
+    SelectButtonModule
     ],
-  providers: [InfoVisInteractionService, TrainingService, NLGeneration, ContextCheckerService],
+  providers: [InfoVisInteractionService, TrainingService, NLGeneration, ContextCheckerService, StateHandlingService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

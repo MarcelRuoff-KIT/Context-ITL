@@ -6,6 +6,10 @@ body{
   //margin-top: 0 !important;
 }
 
+.webchat__basic-transcript{
+  font-size: 0.6rem;
+}
+
 .targetElements{
   pointer-events: none;
 }
@@ -14,6 +18,10 @@ li.p-autocomplete-token{
     max-width: 100% !important;
     cursor: grab !important;
     padding: 0.375rem 0.1rem !important;
+  }
+
+  .p-autocomplete-multiple-container{
+    width: 100% !important
   }
 
 .p-splitter-panel{
@@ -34,6 +42,20 @@ li.p-autocomplete-token{
   cursor: grab !important;
 }
 
+.p-listbox-item > .p-checkbox{
+  margin-right: 1px !important
+}
+
+.p-listbox-item > .p-checkbox > .p-checkbox-box{
+  width: 15px !important;
+  height: 15px !important
+}
+
+.p-listbox-item > .p-checkbox > .p-checkbox-box > .p-checkbox-icon{
+  font-size: 7px !important
+}
+
+
 .chartButton{
   height: 5vh;
   max-height: 100%;
@@ -47,6 +69,7 @@ li.p-autocomplete-token{
   margin: 0 0.5vh !important;
 }
 
+
 .p-accordion-header-link{
   padding: 0px !important;
   margin-top: 3px !important;
@@ -54,7 +77,7 @@ li.p-autocomplete-token{
 
 .p-button-text{
   float: right !important;
-  width: 30px !important;
+  //width: 30px !important;
   height: 30px !important;
 }
 .p-accordion-content{
@@ -82,12 +105,25 @@ li.p-autocomplete-token{
   padding: 0 0.3rem !important;
 }
 
+#x-Axis > .grid > .col-12 > .p-element > .p-autocomplete > .p-autocomplete-multiple-container{
+  flex-wrap: nowrap !important;
+}
+
+#Color > .grid > .col-12 > .p-element > .p-autocomplete > .p-autocomplete-multiple-container{
+  flex-wrap: nowrap !important;
+}
+
 
 
 
 .col-1-extension{
   width: 10.333% !important;
 }
+
+.col-2-extension{
+  width: 10.333% !important;
+}
+
 
 .col-9{
   width: 73% !important;
@@ -136,7 +172,11 @@ li.p-autocomplete-token{
 }
 .p-togglebutton.p-button.p-highlight{
   color: black !important;
+}
 
+
+.pi.pi-lock.p-button-icon{
+  color:white !important;
 }
 
 .p-button-icon-left{
@@ -147,12 +187,27 @@ li.p-autocomplete-token{
   width: fit-content !important;
 }
 
+button.p-ripple.p-element.p-button-raised.p-button-secondary.p-button.p-component:hover{
+  background-color: #3b83f67c;
+}
+
+.p-card{
+  box-shadow: 3px 4px 1px -1px rgb(0 0 0 / 20%), 0 1px 1px 0 rgb(0 0 0 / 14%), 0 1px 3px 0 rgb(0 0 0 / 12%) !important;
+  border: 1px solid rgb(0 0 0 / 20%) !important;
+}
+
 .p-card-body{
   padding: 0 !important;
+  overflow-y: auto;
+  height: 86%;
 }
 
 .p-card-content{
   padding: 0.75rem 0 !important;
+}
+
+.p-carousel-item{
+  max-width: 35% !important;
 }
 
 
@@ -179,21 +234,66 @@ li.p-autocomplete-token{
 
 }
 
+/*
 .p-button-icon-right{
   color: white !important;
 }
+*/
 
 
 button.p-disabled{
   opacity: 0 !important;
 }
 
+.p-dialog{
+  z-index: 1100 !important;
+}
+
 .p-dialog-header{
-  padding: 0.5rem 1rem 0 0 !important
+  padding: 0.5rem 1rem 0.5rem 0.5rem !important
 }
 .p-dialog-content{
-  padding:0 1.5rem 1.5rem 0.5rem !important
+  padding:0 1.5rem 0.5rem 0.5rem !important
 }
+
+.p-dialog-footer{
+  padding: 0 !important;
+}
+
+.p-dialog-title{
+  font-size: 0.8rem !important;
+  padding: 0 0 0 0.5rem !important
+
+}
+
+.p-dialog-bottom-right .p-dialog{
+  margin: 0 5px 5% 0px !important
+}
+
+
+#suggestionDialog > .p-element > .p-dialog{
+  margin: 0px 0px 0px 25% !important
+}
+
+button markdown p{
+  margin: 0px !important;
+}
+
+.p-chip markdown p{
+  margin: 0px !important;
+}
+
+.buttonDisable{
+  pointer-events: none;
+  opacity: .25;
+
+}
+
+.leader-line{
+  z-index: 1010;
+}
+
+
 
 
 /*.p-multiselect-panel{
@@ -250,3 +350,33 @@ button.p-disabled{
       stroke-dashoffset: -124px;
   }
 }
+
+.p-multiselect-panel{
+  z-index: 140;
+}
+
+#pin > div{
+  background-color: gray !important	;
+}
+
+
+.small-input-switch {
+
+  .p-inputswitch {
+    height: 1.2rem;
+    width: 2.4rem;
+    &.p-inputswitch-checked {
+        .p-inputswitch-slider::before {
+            transform: translateX(1rem);
+        }
+    }
+
+    .p-inputswitch-slider::before {
+        width: 0.9rem;
+        height: 0.9rem;
+        margin-top: -0.45rem;
+    }
+  }
+}
+
+

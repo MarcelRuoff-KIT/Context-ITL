@@ -16,7 +16,7 @@ declare let vegaEmbed: any;
   templateUrl: './visualization-canvas.component.html',
   styleUrls: ['./visualization-canvas.component.scss']
 })
-export class VisualizationCanvasComponent implements OnInit {
+export class VisualizationCanvasComponent {
 
   @Output() receiveData = new EventEmitter<any>();
 
@@ -28,12 +28,16 @@ export class VisualizationCanvasComponent implements OnInit {
 
   public retry = {"#vis": 0}
 
-  public mode = "current"
+  public mode = 2
 
 
   //Visualization 
 
-  public dataFields = ['Projects', 'Amount', 'State', 'Energy Type', 'Party of Governor', 'Investment Type', 'Year']
+  public dataFields = ['Number of Projects', 'Amount Invested', 'State', 'Energy Type', 'Party of Governor', 'Investment Type', 'Year']
+
+  public datafieldTypes = ["nominal", "temporal", "quantitative"]
+
+  public visualizationTypes = ["bar", "point", "line"]
 
   public dataFieldsConfig: { [characterName: string]: string } = {
 
@@ -42,14 +46,70 @@ export class VisualizationCanvasComponent implements OnInit {
     "Party of Governor": "nominal",
     "Investment Type": "nominal",
     "Year": "temporal",
-    "Projects": "quantitative",
-    "Amount": "quantitative",
+    "Number of Projects": "quantitative",
+    "Amount Invested": "quantitative",
     //"Population": "quantitative"
+  }
+
+  dataFieldsConfigTranslate: { [characterName: string]: string } = {
+    "nominal": "category-based",
+    "temporal": "time-based",
+    "quantitative": "number-based"
   }
 
   public optionDictionary: { [characterName: string]: Item[] } = {
     "Party of Governor": [{ label: "Republican", value: "Republican" }, { label: "Democratic", value: "Democratic" }, { label: "Independant", value: "Independant" }],
-    "State": [{ label: "Alaska", value: "Alaska" }, { label: "Illinois", value: "Illinois" }, { label: "New York", value: "New York" }, { label: "Maine", value: "Maine" }, { label: "Texas", value: "Texas" }, { label: "North Carolina", value: "North Carolina" }, { label: "Washington", value: "Washington" }, { label: "Iowa", value: "Iowa" }, { label: "New Jersey", value: "New Jersey" }, { label: "Minnesota", value: "Minnesota" }, { label: "Idaho", value: "Idaho" }, { label: "California", value: "California" }, { label: "Wyoming", value: "Wyoming" }, { label: "Pennsylvania", value: "Pennsylvania" }, { label: "Arizona", value: "Arizona" }, { label: "Florida", value: "Florida" }, { label: "Colorado", value: "Colorado" }, { label: "Hawaii", value: "Hawaii" }, { label: "Michigan", value: "Michigan" }, { label: "Vermont", value: "Vermont" }, { label: "Wisconsin", value: "Wisconsin" }, { label: "Oregon", value: "Oregon" }, { label: "Kansas", value: "Kansas" }, { label: "Kentucky", value: "Kentucky" }, { label: "Georgia", value: "Georgia" }, { label: "Massachusetts", value: "Massachusetts" }, { label: "Virginia", value: "Virginia" }, { label: "Missouri", value: "Missouri" }, { label: "Rhode Island", value: "Rhode Island" }, { label: "Alabama", value: "Alabama" }, { label: "Tennessee", value: "Tennessee" }, { label: "Mississippi", value: "Mississippi" }, { label: "Ohio", value: "Ohio" }, { label: "Indiana", value: "Indiana" }, { label: "Nebraska", value: "Nebraska" }, { label: "Oklahoma", value: "Oklahoma" }, { label: "Arkansas", value: "Arkansas" }, { label: "South Dakota", value: "South Dakota" }, { label: "North Dakota", value: "North Dakota" }, { label: "New Hampshire", value: "New Hampshire" }, { label: "Maryland", value: "Maryland" }, { label: "West Virginia", value: "West Virginia" }, { label: "Louisiana", value: "Louisiana" }, { label: "New Mexico", value: "New Mexico" }, { label: "Montana", value: "Montana" }, { label: "Utah", value: "Utah" }, { label: "South Carolina", value: "South Carolina" }, { label: "Connecticut", value: "Connecticut" }, { label: "Puerto Rico", value: "Puerto Rico" }, { label: "Nevada", value: "Nevada" }, { label: "Delaware", value: "Delaware" }],
+    "State":[{'label': 'Alabama', 'value': 'Alabama'},
+    {'label': 'Alaska', 'value': 'Alaska'},
+    {'label': 'Arizona', 'value': 'Arizona'},
+    {'label': 'Arkansas', 'value': 'Arkansas'},
+    {'label': 'California', 'value': 'California'},
+    {'label': 'Colorado', 'value': 'Colorado'},
+    {'label': 'Connecticut', 'value': 'Connecticut'},
+    {'label': 'Delaware', 'value': 'Delaware'},
+    {'label': 'Florida', 'value': 'Florida'},
+    {'label': 'Georgia', 'value': 'Georgia'},
+    {'label': 'Hawaii', 'value': 'Hawaii'},
+    {'label': 'Idaho', 'value': 'Idaho'},
+    {'label': 'Illinois', 'value': 'Illinois'},
+    {'label': 'Indiana', 'value': 'Indiana'},
+    {'label': 'Iowa', 'value': 'Iowa'},
+    {'label': 'Kansas', 'value': 'Kansas'},
+    {'label': 'Kentucky', 'value': 'Kentucky'},
+    {'label': 'Louisiana', 'value': 'Louisiana'},
+    {'label': 'Maine', 'value': 'Maine'},
+    {'label': 'Maryland', 'value': 'Maryland'},
+    {'label': 'Massachusetts', 'value': 'Massachusetts'},
+    {'label': 'Michigan', 'value': 'Michigan'},
+    {'label': 'Minnesota', 'value': 'Minnesota'},
+    {'label': 'Mississippi', 'value': 'Mississippi'},
+    {'label': 'Missouri', 'value': 'Missouri'},
+    {'label': 'Montana', 'value': 'Montana'},
+    {'label': 'Nebraska', 'value': 'Nebraska'},
+    {'label': 'Nevada', 'value': 'Nevada'},
+    {'label': 'New Hampshire', 'value': 'New Hampshire'},
+    {'label': 'New Jersey', 'value': 'New Jersey'},
+    {'label': 'New Mexico', 'value': 'New Mexico'},
+    {'label': 'New York', 'value': 'New York'},
+    {'label': 'North Carolina', 'value': 'North Carolina'},
+    {'label': 'North Dakota', 'value': 'North Dakota'},
+    {'label': 'Ohio', 'value': 'Ohio'},
+    {'label': 'Oklahoma', 'value': 'Oklahoma'},
+    {'label': 'Oregon', 'value': 'Oregon'},
+    {'label': 'Pennsylvania', 'value': 'Pennsylvania'},
+    {'label': 'Puerto Rico', 'value': 'Puerto Rico'},
+    {'label': 'Rhode Island', 'value': 'Rhode Island'},
+    {'label': 'South Carolina', 'value': 'South Carolina'},
+    {'label': 'South Dakota', 'value': 'South Dakota'},
+    {'label': 'Tennessee', 'value': 'Tennessee'},
+    {'label': 'Texas', 'value': 'Texas'},
+    {'label': 'Utah', 'value': 'Utah'},
+    {'label': 'Vermont', 'value': 'Vermont'},
+    {'label': 'Virginia', 'value': 'Virginia'},
+    {'label': 'Washington', 'value': 'Washington'},
+    {'label': 'West Virginia', 'value': 'West Virginia'},
+    {'label': 'Wisconsin', 'value': 'Wisconsin'},
+    {'label': 'Wyoming', 'value': 'Wyoming'}],
     "Investment Type": [{ label: "Direct Loan", value: "Direct Loan" }, { label: "Grant", value: "Grant" }, { label: "Unknown", value: "Unknown" }, { label: "Payment", value: "Payment" }, { label: "Loan Guarantee", value: "Loan Guarantee" }, { label: "Combo Grant/Loan", value: "Combo Grant/Loan" }],
     "Year": [{ label: "2021", value: "2021" }, { label: "2020", value: "2020" }, { label: "2019", value: "2019" }, { label: "2018", value: "2018" }, { label: "2017", value: "2017" }],
     "Energy Type": [{ label: "Hydroelectric", value: "Hydroelectric" }, { label: "Solar", value: "Solar" }, { label: "Energy Efficiency", value: "Energy Efficiency" }, { label: "Anaerobic Digester", value: "Anaerobic Digester" }, { label: "Renewable Biomass", value: "Renewable Biomass" }, { label: "Other", value: "Other" }, { label: "Wind", value: "Wind" }, { label: "Hydrogen", value: "Hydrogen" }, { label: "Geothermal", value: "Geothermal" }]
@@ -58,26 +118,24 @@ export class VisualizationCanvasComponent implements OnInit {
 
   public aggregates: Item[] = [{ label: "Mean", value: "mean" }, { label: "Sum", value: "sum" }, { label: "Min", value: "min" }, { label: "Max", value: "max" }]
 
-  public maxList = { "Amount": { "mean": 60000000, "sum": 4000000000, "min": 25000000, "max": 250000000 }, "Projects": { "mean": 750, "sum": 21000, "min": 750, "max": 750 } };
+  public maxList = { "Amount Invested": { "mean": 60000000, "sum": 4000000000, "min": 25000000, "max": 250000000 }, "Number of Projects": { "mean": 750, "sum": 21000, "min": 750, "max": 750 } };
 
   public currentVisualizationState: { [characterName: string]: any } = {
     "VISUALIZATION": "bar",
-    "Datafields": [],
     "Values": [],
-    "Number_Values": 0,
     "x-Axis": [],
-    "Number_x-Axis": 0,
     "Color": [],
-    "Number_Color": 0,
     "ColorElements": [],
     "Highlight": "",
-    "CheckedHighlight": { "Projects": false, "Amount": false, },
+    "CheckedHighlight": { "Number of Projects": false, "Amount Invested": false, },
     "ColorHighlight": [],
     "Filter": [],
+    "ActiveFilter":{"Energy Type": false, "State":  false, "Party of Governor":  false, "Investment Type":  false, "Year":  false, "Number of Projects":  false, "Amount Invested":  false},
     "FilterC": { "Party of Governor": [], "State": [], "Investment Type": [], "Energy Type": [], "Year": [] },
-    "FilterN": { "Amount": [0, 4000000000], "Projects": [0, 21000] },
-    "FilterNActive": { "Amount": [false, false], "Projects": [false, false] },
-    "Aggregate": { "Amount": "sum", "Projects": "sum" }
+    "FilterN": { "Amount Invested": [0, 4000000000], "Number of Projects": [0, 21000] },
+    "FilterNActive": { "Amount Invested": [false, false], "Number of Projects": [false, false] },
+    "Aggregate": { "Amount Invested": "sum", "Number of Projects": "sum" },
+    "Datafields": []
   }
 
   public possibleVisualizationStates = []
@@ -85,21 +143,15 @@ export class VisualizationCanvasComponent implements OnInit {
 
   constructor(private ngxCsvParser: NgxCsvParser) { }
 
-  ngOnInit(): void {
-
-    for (var element in this.optionDictionary) {
-      this.optionDictionary[element].forEach(item => this.currentVisualizationState['FilterC'][element].push(item["value"]))
-    }
-  }
 
   async createVisualization(that, visualizationState, target, type) {
 
-    if(that.correctionMode && type == "large"){
+    if(that.overallMode == 0 && type == "large"){
       visualizationState = await that.training.changeAmbiguityInterpretation(that, that.training.possibleActions[that.training.selectedAmbiguity])
     }
 
-    console.log(target)
-    console.log(visualizationState)
+    //console.log(target)
+    //console.log(visualizationState)
 
     if(typeof(this.retry[target]) == "undefined"){
       this.retry[target] = 1
@@ -438,8 +490,8 @@ export class VisualizationCanvasComponent implements OnInit {
       { "filter": { "field": "State", "oneOf": visualizationState['FilterC']["State"] } },
       { "filter": { "field": "Investment Type", "oneOf": visualizationState['FilterC']["Investment Type"] } },
       { "filter": { "field": "Year", "oneOf": visualizationState['FilterC']["Year"] } },
-      { "filter": { "field": "Amount", "range": visualizationState['FilterN']["Amount"] } },
-      { "filter": { "field": "Projects", "range": visualizationState['FilterN']["Projects"] } }
+      { "filter": { "field": "Amount Invested", "range": visualizationState['FilterN']["Amount Invested"] } },
+      { "filter": { "field": "Number of Projects", "range": visualizationState['FilterN']["Number of Projects"] } }
     ]
 
     if (visualizationState["Values"].length == 0 && visualizationState['x-Axis'].length > 0) {
@@ -472,20 +524,23 @@ export class VisualizationCanvasComponent implements OnInit {
         }
       )
     }
+    /*if(target == "#vis"){
+      console.log(vegaLiteSpecification)
 
+    }*/
     vegaEmbed(target, vegaLiteSpecification, { "actions": false, "mode": "vega-lite", "renderer": type == "large" ? "svg" : "png" }).then(function (result: any) {
 
       var width = result.view.getState()["signals"]["width"]
       if (visualizationState["Values"].length >= 1 ) {
         if(type == "large" && Math.abs(width - this.baseWidth)/this.baseWidth > 0.1 && this.retry[target] < 3){
-          console.log(this.baseWidth)
-          console.log(width)
+          //console.log(this.baseWidth)
+          //console.log(width)
           this.baseWidth = width
           this.createVisualization(that, visualizationState, target, type)
         }
         else if(type == "small" && Math.abs(width - this.targetWidth)/this.targetWidth > 0.1 && this.retry[target] < 2){
-          console.log(this.targetWidth)
-          console.log(width)
+          //console.log(this.targetWidth)
+          //console.log(width)
           this.targetWidth = width
           this.createVisualization(that, visualizationState, target, type)
         }
@@ -500,8 +555,12 @@ export class VisualizationCanvasComponent implements OnInit {
 
       if (type == "large") {
         result.view.addEventListener('click', function (event, item) {
-          if (typeof (item) != 'undefined' && "description" in item) {
-            that.infoVisInteraction.addAxisHighlight(that, visualizationState, item["description"].split("; ")[1].split(" ")[2].slice(0, -1), true)
+          if (typeof (item) != 'undefined' && "description" in item && visualizationState["Values"].length > 1 && that.overallMode != 1 ) {
+            for(var i = 0; i < visualizationState["Values"].length; i++){
+              if(String(item["description"]).indexOf(visualizationState["Values"][i]) != -1){
+                that.infoVisInteraction.addAxisHighlight(that, visualizationState, visualizationState["Values"][i], true)
+              }
+            }
             this.createVisualization(that, visualizationState, "#vis", "large");
           }
         }.bind(this));
