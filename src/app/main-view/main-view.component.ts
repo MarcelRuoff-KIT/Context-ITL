@@ -72,6 +72,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
   //Conversational Agent
+  public modal = true
   public awaitingMessage = false;
   public directLine: any;
   public store: any;
@@ -118,8 +119,8 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   ]
 
 
-  hoverBlocker = ['generalDialog', 'suggestionDialog', 'nlClarification', 'displayConstraints', 'displayAmbiguities', 'acceptSuggestion', 'declineSuggestion', 'header', 'footer', 'pin', 'ConditionGuide', 'p-accordiontab']
-  excludeList = ['interactionBlocker', 'targetHover', 'suggestion', 'vis', 'visCanvas', 'visGrid', 'suggestionHook', 'pin', 'pr_id']
+  hoverBlocker = ['blockerUI', 'generalDialog', 'suggestionDialog', 'nlClarification', 'displayConstraints', 'displayAmbiguities', 'acceptSuggestion', 'declineSuggestion', 'header', 'footer', 'pin', 'ConditionGuide', 'p-accordiontab']
+  excludeList = ['interactionBlocker', 'targetHover', 'suggestion', 'vis', 'visCanvas', 'visGrid', 'suggestionHook', 'pin', 'pr_id', 'p-accordiontab', 'constraintsHighlight']
 
   /**
    * Initialization of the System through Angular Lifecycle
@@ -194,7 +195,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         locale: 'en-US',
         store: this.store,
         overrideLocalizedStrings: {
-          TEXT_INPUT_PLACEHOLDER: 'Please type the command you want to perform...'//'Click on the microphone and speak OR type ...'
+          TEXT_INPUT_PLACEHOLDER: 'Please type the Natural Language Input you want to perform...'//'Click on the microphone and speak OR type ...'
         }
 
       },
@@ -288,10 +289,9 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         document.getElementById('nlInputInter')['style']['zIndex'] = '1101'
 
         if (this.firstBreakdown) {
-
+          this.dialogWaitforNext = true
           this.dialogBacklog = event["data"]["text"].split('$')
           this.chatbotMessage = this.dialogBacklog.shift()
-          this.dialogWaitforNext = true
         }
         else {
           this.chatbotMessage = event["data"]["text"].replace('$', '')
@@ -337,7 +337,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
           this.directLine
             .postActivity({
               from: { id: "USER_ID", name: "USER_NAME" },
-              name: "askForTraining",
+              name: "askForTrainingNONE",
               type: "event",
             })
             .subscribe(
@@ -691,6 +691,22 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         }
       }
 
+      var axis = document.getElementsByClassName("role-legend");
+      for (var i = 0; i < axis.length; i++) {
+
+        if (axis[i]["ariaLabel"] != null) {
+          var bounds = axis[i].getBoundingClientRect()
+
+          var element = document.getElementById("Canvas_Color")
+
+          element["style"]["display"] = "block"
+          element["style"]["top"] = bounds.top.toString() + "px"
+          element["style"]["left"] = bounds.left.toString() + "px"
+          element["style"]["width"] = bounds.width.toString() + "px"
+          element["style"]["height"] = bounds.height.toString() + "px"
+        }
+      }
+
       if (this.overallMode == 1 && this.contextCh.suggestions.length > 1) {
         if (this.contextCh.suggestionsIndex > 0) {
           this.contextCh.suggestionsPrevious = true
@@ -753,7 +769,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       clearInterval(this.hoverInterval);
     }
     this.hoverInterval = setInterval(() => {
-      if (this.overallMode == 1 && this.displaySuggestionDialog && typeof (this.line != "undefined") && this.line != null) {
+      if (this.overallMode == 1 && (this.displaySuggestionDialog || this.displayAmbiguityDialogStart) && typeof (this.line != "undefined") && this.line != null) {
         this.line.position()
       }
       if (!this.pinnedSuggestion && document.getElementById('targetHover') != null && document.getElementById('targetHover')['style']["display"] == 'none' && this.line != null) {
@@ -765,11 +781,15 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     this.overallMode = 1
     this.visCanvas.mode = this.overallMode
     this.firstBreakdown = false
+    this.positionDialog = "center"
     this.displayDialog = true
 
+    if(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) == JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])){
+      this.contextCh.constraints = this.training.possibleActions[this.training.selectedAmbiguity]["Constraints"]
+      this.contextCh.constraintText = this.training.possibleActions[this.training.selectedAmbiguity]["ConstraintsText"]
+    }
 
-    this.contextCh.constraints = this.training.possibleActions[this.training.selectedAmbiguity]["Constraints"]
-    this.contextCh.constraintText = this.training.possibleActions[this.training.selectedAmbiguity]["ConstraintsText"]
+    
 
     this.contextCh.finalActions = this.training.possibleActions[this.training.selectedAmbiguity]
 
@@ -856,7 +876,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
             if (number > 0) {
               this.confirmationService.confirm({
                 target: event.target,
-                message: 'Unfortunately, I detected ' + number + ' conflicting interpretation(s) for your Natural Language Input. Can you help me better understand how the data fields selected and configuration of the data visualization influenced your interpretation of the Natural Language Input?',
+                message: 'Unfortunately, I detected ' + number + ' conflicting interpretation(s) for your Natural Language Input. Can you help me better learn when to select your interpretation of the Natural Language Input?',
                 icon: 'pi pi-exclamation-triangle',
                 accept: () => {
                   this.continueDemonstration()
@@ -871,7 +891,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
             else {
               this.confirmationService.confirm({
                 target: event.target,
-                message: 'Can you help me better understand how the data fields selected and configuration of the data visualization influenced your interpretation of the Natural Language Input?',
+                message: 'Can you help me better learn when to select your interpretation of the Natural Language Input?',
                 icon: 'pi pi-exclamation-triangle',
                 accept: () => {
                   this.continueDemonstration()
@@ -948,7 +968,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     else if (target == 1) {
       document.getElementById("displayConstraints")["style"]["display"] = "block"
       document.getElementById("displayAmbiguities")["style"]["display"] = "none"
-      document.getElementById("visGrid")["style"]["height"] = "40%"
+      document.getElementById("visGrid")["style"]["height"] = "47%"
       document.getElementById("nlClarification")["style"]["height"] = "10%"
       document.getElementById("visCanvas")["className"] = "col-12"
       document.getElementById("actionSequenceMeta")["style"]["display"] = "none"
@@ -1169,6 +1189,9 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     else if (target == "filter") {
       await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
+    else if (target == "colorHighlight") {
+      await this.infoVisInteraction.removeLegendHighlight(this,  this.visCanvas.currentVisualizationState, ["ALL"], true, null)
+    }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
     this.stateHandling.addAction(this, "Mouse")
   }
@@ -1326,7 +1349,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       this.positionDialog = "bottom-right"
       this.displayDialog = true
       document.getElementById('nlInputInter')['style']['zIndex'] = '1'
-      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1101'
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '510'
       document.getElementById('ambiguityCarousel')['style']['pointer-events'] = 'none'
 
       this.chatbotMessage = this.dialogBacklog.shift()
@@ -1360,12 +1383,16 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
       document.getElementById('actionSequenceMeta')['style']['zIndex'] = '1'
       document.getElementById('actionSequenceMeta')['style']['pointer-events'] = ''
+      this.displayDialog = false
     }
     else if (this.overallMode == 1 && this.contextCh.suggestions.length > 0 && target == "Show") {
       this.showSuggestions('current')
+      this.displayDialog = false
     }
     else {
       document.getElementById('nlInputInter')['style']['zIndex'] = '1'
+      this.displayDialog = false
+
     }
   }
 
@@ -1381,19 +1408,19 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1'
       document.getElementById('ambiguityCarousel')['style']['pointer-events'] = ''
 
-      document.getElementById('Datafields')['style']['zIndex'] = '1101'
+      document.getElementById('Datafields')['style']['zIndex'] = '510'
       document.getElementById('Datafields')['style']['pointer-events'] = 'none'
 
-      document.getElementById('Encodings')['style']['zIndex'] = '1101'
+      document.getElementById('Encodings')['style']['zIndex'] = '510'
       document.getElementById('Encodings')['style']['pointer-events'] = 'none'
 
-      document.getElementById('Filter')['style']['zIndex'] = '1101'
+      document.getElementById('Filter')['style']['zIndex'] = '510'
       document.getElementById('Filter')['style']['pointer-events'] = 'none'
 
-      document.getElementById('visCanvas')['style']['zIndex'] = '1101'
+      document.getElementById('visCanvas')['style']['zIndex'] = '510'
       document.getElementById('visCanvas')['style']['pointer-events'] = 'none'
 
-      document.getElementById('botWin')['style']['zIndex'] = '1101'
+      document.getElementById('botWin')['style']['zIndex'] = '510'
       document.getElementById('botWin')['style']['pointer-events'] = 'none'
 
 
@@ -1417,16 +1444,16 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById('botWin')['style']['zIndex'] = '1'
       document.getElementById('botWin')['style']['pointer-events'] = ''
 
-      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '1101'
+      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '510'
       document.getElementById('actionSequenceMeta')['style']['pointer-events'] = 'none'
     }
     this.highlightChildren += 1
   }
 
-  addConstraint(targetText) {
+  /*addConstraint(targetText) {
     //this.displaySuggestionDialog = false;
     this.contextCh.addConstraint(this, targetText)
-  }
+  }*/
 
   removeConstraint(event, target) {
     this.contextCh.removeConstraint(this, target)
@@ -1543,6 +1570,63 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     this.contextCh.getAmbiguousActionsStart(this, 'during', false)
     this.displaySuggestionHelp = true
 
+  }
+
+  getConfidence(ambiguity, mode){
+    //console.log(JSON.parse(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action'])))
+    //console.log(JSON.parse(JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])))
+    var text = ''
+    var score = ''
+
+    if(this.training.selectedAmbiguity == 0){
+      if(ambiguity["ID"] == this.training.selectedAmbiguity){
+        if(this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']){
+          text = 'New Confidence: '
+          score = Math.round(this.training.possibleActions[1]['ScoreFuture'] * 100) + '%'
+        }
+        else{
+          text = 'New Confidence: '
+          score = (100) + '%'
+        }
+        
+      }
+      else{
+        text = 'New Confidence: '
+          score = Math.round(ambiguity['ScoreFuture']* 100) + '%'
+      }
+    }
+    else if(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) === JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])){
+      text = 'Initial Confidence: ' 
+      score = Math.round(ambiguity['Score']* 100) + '%'
+    }
+    else{
+      if(ambiguity["ID"] == this.training.selectedAmbiguity){
+        if(this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']){
+          text = 'New Confidence: '
+          score = Math.round(this.training.possibleActions[1]['ScoreFuture'] * 100) + '%'
+        }
+        else{
+          text = 'New Confidence: '
+          score = (100) + '%'
+        }
+        
+      }
+      else{
+        text = 'New Confidence: '
+          score = Math.round(ambiguity['ScoreFuture']* 100) + '%'
+      }
+    }
+
+    if(mode == 'badge'){
+      return score
+
+    }
+    else{
+      return text + score
+
+    }
+
+    
   }
 
 }

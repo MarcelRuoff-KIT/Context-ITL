@@ -9,7 +9,8 @@ export class TrainingService {
   public initialVisualizationState: any = {}
   public initialEntities: any = { "DATAFIELD": [], "VISUALIZATION": [] }
   public possibleActions: any = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
-  public baseAction = { "Action": {}, "ID": 0, "Score": 0, "Constraints": [], "ConstraintsText": [] }
+  public initialActions: any = []
+  public baseAction = { "Action": {}, "ID": 0, "Score": 0, 'ScoreFuture': 0, "Constraints": [], "ConstraintsText": [] }
   public selectedAmbiguity = 1
   public verbs = ["ADD", "REMOVE"]
   public nlInput = []
@@ -21,6 +22,8 @@ export class TrainingService {
     this.initialize = true
     this.selectedAmbiguity = 0
 
+    console.log(possibleActions)
+
     this.initialVisualizationState = JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState))
 
     this.possibleActions = [JSON.parse(JSON.stringify(this.baseAction))]
@@ -29,7 +32,7 @@ export class TrainingService {
 
     var index = 0
     for (var i = 0; i < possibleActions.length; i++) {
-      this.possibleActions.push({ "Action": {}, "ID": possibleActions[i]["ID"], "Score": possibleActions[i]["Score"], "Constraints": possibleActions[i]["Constraints"], "ConstraintsText": possibleActions[i]["ConstraintsText"] })
+      this.possibleActions.push({ "Action": {}, "ID": possibleActions[i]["ID"], "Score": possibleActions[i]["Score"], "ScoreFuture": possibleActions[i]["ScoreFuture"], 'newAmbiguity':  possibleActions[i]["newAmbiguity"], "Constraints": possibleActions[i]["Constraints"], "ConstraintsText": possibleActions[i]["ConstraintsText"] })
       that.visCanvas.possibleVisualizationStates.push(JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState)))
       //element["Action"].forEach(actionEntity => {
       await that.infoVisInteraction.processAction(that, that.visCanvas.possibleVisualizationStates[possibleActions[i]["ID"]], possibleActions[i]["Action"], true, possibleActions[i]["ID"])
@@ -47,6 +50,7 @@ export class TrainingService {
     else {
       that.visCanvas.currentVisualizationState = that.visCanvas.possibleVisualizationStates[0]
     }
+    this.initialActions = JSON.parse(JSON.stringify(this.possibleActions))
 
     this.initialize = false
   }
@@ -349,7 +353,7 @@ export class TrainingService {
 
         await that.nlg.initializeUnderstandingDisplay(that, refinedActionList, "training")
       }
-      else if (contradicting){
+      else if (contradicting && !that.speechInteraction){
         that.askForTraining = true
 
         that.directLine

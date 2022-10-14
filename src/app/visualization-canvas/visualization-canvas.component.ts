@@ -58,7 +58,7 @@ export class VisualizationCanvasComponent {
   }
 
   public optionDictionary: { [characterName: string]: Item[] } = {
-    "Party of Governor": [{ label: "Republican", value: "Republican" }, { label: "Democratic", value: "Democratic" }, { label: "Independant", value: "Independant" }],
+    "Party of Governor": [{'label': 'Democratic', 'value': 'Democratic'}, {'label': 'Independant', 'value': 'Independant'}, {'label': 'Republican', 'value': 'Republican'}],
     "State":[{'label': 'Alabama', 'value': 'Alabama'},
     {'label': 'Alaska', 'value': 'Alaska'},
     {'label': 'Arizona', 'value': 'Arizona'},
@@ -110,9 +110,9 @@ export class VisualizationCanvasComponent {
     {'label': 'West Virginia', 'value': 'West Virginia'},
     {'label': 'Wisconsin', 'value': 'Wisconsin'},
     {'label': 'Wyoming', 'value': 'Wyoming'}],
-    "Investment Type": [{ label: "Direct Loan", value: "Direct Loan" }, { label: "Grant", value: "Grant" }, { label: "Unknown", value: "Unknown" }, { label: "Payment", value: "Payment" }, { label: "Loan Guarantee", value: "Loan Guarantee" }, { label: "Combo Grant/Loan", value: "Combo Grant/Loan" }],
-    "Year": [{ label: "2021", value: "2021" }, { label: "2020", value: "2020" }, { label: "2019", value: "2019" }, { label: "2018", value: "2018" }, { label: "2017", value: "2017" }],
-    "Energy Type": [{ label: "Hydroelectric", value: "Hydroelectric" }, { label: "Solar", value: "Solar" }, { label: "Energy Efficiency", value: "Energy Efficiency" }, { label: "Anaerobic Digester", value: "Anaerobic Digester" }, { label: "Renewable Biomass", value: "Renewable Biomass" }, { label: "Other", value: "Other" }, { label: "Wind", value: "Wind" }, { label: "Hydrogen", value: "Hydrogen" }, { label: "Geothermal", value: "Geothermal" }]
+    "Investment Type": [{'label': 'Combo Grant/Loan', 'value': 'Combo Grant/Loan'}, {'label': 'Direct Loan', 'value': 'Direct Loan'}, {'label': 'Grant', 'value': 'Grant'}, {'label': 'Loan Guarantee', 'value': 'Loan Guarantee'}, {'label': 'Payment', 'value': 'Payment'}, {'label': 'Unknown', 'value': 'Unknown'}],
+    "Year": [{'label': '2017', 'value': '2017'}, {'label': '2018', 'value': '2018'}, {'label': '2019', 'value': '2019'}, {'label': '2020', 'value': '2020'}, {'label': '2021', 'value': '2021'}],
+    "Energy Type": [{'label': 'Anaerobic Digester', 'value': 'Anaerobic Digester'}, {'label': 'Energy Efficiency', 'value': 'Energy Efficiency'}, {'label': 'Geothermal', 'value': 'Geothermal'}, {'label': 'Hydroelectric', 'value': 'Hydroelectric'}, {'label': 'Hydrogen', 'value': 'Hydrogen'}, {'label': 'Other', 'value': 'Other'}, {'label': 'Renewable Biomass', 'value': 'Renewable Biomass'}, {'label': 'Solar', 'value': 'Solar'}, {'label': 'Wind', 'value': 'Wind'}]
   }
 
 
@@ -558,7 +558,7 @@ export class VisualizationCanvasComponent {
           if (typeof (item) != 'undefined' && "description" in item && visualizationState["Values"].length > 1 && that.overallMode != 1 ) {
             for(var i = 0; i < visualizationState["Values"].length; i++){
               if(String(item["description"]).indexOf(visualizationState["Values"][i]) != -1){
-                that.infoVisInteraction.addAxisHighlight(that, visualizationState, visualizationState["Values"][i], true)
+                that.infoVisInteraction.addAxisHighlight(that, visualizationState, visualizationState["Values"][i], true, null)
               }
             }
             this.createVisualization(that, visualizationState, "#vis", "large");
@@ -568,26 +568,56 @@ export class VisualizationCanvasComponent {
 
         if (visualizationState['Color'].length > 0 && visualizationState["Values"].length >= 1) {
           result.view.addSignalListener("legendSelect0", function (name, value) {
-            if (Object.keys(value).length > 0) {
-              that.infoVisInteraction.addLegendHighlight(that, visualizationState, value[visualizationState['Color'][0]], true)
+            if (Object.keys(value).length > 0 && !visualizationState['ColorHighlight'].includes(value[visualizationState['Color'][0]][0])) {
+              that.infoVisInteraction.addLegendHighlight(that, visualizationState, value[visualizationState['Color'][0]], true, null)
+            }
+            else if(Object.keys(value).length > 0){
+              that.infoVisInteraction.removeLegendHighlight(that, visualizationState, value[visualizationState['Color'][0]], true, null)
             }
             else {
-              that.infoVisInteraction.removeLegendHighlight(that, visualizationState, ["ALL"], true)
+              that.infoVisInteraction.removeLegendHighlight(that, visualizationState, ["ALL"], true, null)
             }
             this.createVisualization(that, visualizationState, "#vis", "large");
           }.bind(this))
         }
 
+        var highlightElements = document.getElementsByClassName("colorHighlightElement")
+        for (var i = highlightElements.length - 1; 0 <= i; i--) {
+          var element = highlightElements[i];
+          if(element["id"] != "ColorHighlightTemplate"){
+            element.parentNode.removeChild(element);
+          }
+        }
+
         var visibleColorElements = document.querySelector(".mark-group.role-scope")
         if(visibleColorElements){
           visualizationState["ColorElements"] = []
-          for(var i = 0; i < visibleColorElements.children.length; i++){
+          for(var i = 0; i < visibleColorElements.children.length; i++){            
             var text = visibleColorElements.children[i].children[1].children[1].children[0].textContent
             visualizationState["ColorElements"].push(text)
-            visibleColorElements.children[i].id = "ColorElement_" + text
+
+            var clone = document.getElementById('ColorHighlightTemplate').cloneNode(true);
+            clone["id"] = "ColorHighlight_" + text
+
+            var bounds = visibleColorElements.children[i].getBoundingClientRect()
+
+            if(that.overallMode != 1){
+              clone["style"]["pointer-events"] = "none"
+            }
+
+            clone["style"]["display"] = "block"
+            clone["style"]["top"] = bounds.top.toString() + "px"
+            clone["style"]["left"] = bounds.left.toString() + "px"
+            clone["style"]["width"] = bounds.width.toString() + "px"
+            clone["style"]["height"] = bounds.height.toString() + "px"
+            document.body.appendChild(clone)
           }
+
+          var highlightElements = document.getElementsByClassName("colorHighlightElement")
+
           
         }
+
         var visiblexAxis = document.getElementsByClassName("role-axis")
         for (var j = 0; j < visiblexAxis.length; j++){
           if(visiblexAxis[j]["ariaLabel"] != null && visiblexAxis[j]["ariaLabel"].startsWith("X-axis")){

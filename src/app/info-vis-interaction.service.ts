@@ -193,7 +193,7 @@ export class InfoVisInteractionService {
       visualizationState['x-Axis'] = [dataFields[0]]
 
       visualizationState['Datafields'].push(dataFields[0])
-      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields'].filter((v, i, a) => a.indexOf(v) === i)))
     }
 
 
@@ -243,7 +243,7 @@ export class InfoVisInteractionService {
           this.removeXAxis(that, visualizationState, [dataFields[i]], false, ambiguity)
 
         }
-        else if (visualizationState["Values"].includes(dataFields[i])) {
+        else if (visualizationState['Values'].includes(dataFields[i])) {
           this.removeValues(that, visualizationState, [dataFields[i]], false, ambiguity)
         }
         else if (visualizationState['Color'].includes(dataFields[i])) {
@@ -260,9 +260,9 @@ export class InfoVisInteractionService {
         }
 
         visualizationState["Values"].push(dataFields[i])
-        visualizationState["Values"] = JSON.parse(JSON.stringify(visualizationState["Values"]))
+        visualizationState["Values"] = JSON.parse(JSON.stringify(visualizationState["Values"].filter((v, i, a) => a.indexOf(v) === i)))
         visualizationState['Datafields'].push(dataFields[i])
-        visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+        visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields'].filter((v, i, a) => a.indexOf(v) === i)))
       }
       else {
         nonNumeric = true
@@ -286,6 +286,11 @@ export class InfoVisInteractionService {
   async removeValues(that: any, visualizationState: any, dataFields: string[], unique: boolean, ambiguity: any) {
 
     var currentDatafields = []
+
+    Object.keys(visualizationState['CheckedHighlight']).forEach(element => {
+      visualizationState['CheckedHighlight'][element] = false
+    })
+    visualizationState['Highlight'] = ""
 
     if(dataFields.includes('ALL')){
       currentDatafields = visualizationState['Values']
@@ -338,7 +343,7 @@ export class InfoVisInteractionService {
         visualizationState['ColorHighlight'] = visualizationState['ColorHighlight'].filter(element => that.visCanvas.optionDictionary[visualizationState['Color'][0]].some(entity => entity['label'] == element))
 
       }
-      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields']))
+      visualizationState['Datafields'] = JSON.parse(JSON.stringify(visualizationState['Datafields'].filter((v, i, a) => a.indexOf(v) === i)))
 
     }
 
@@ -576,9 +581,10 @@ export class InfoVisInteractionService {
       target = ""
     }
 
-
+/*
     document.getElementById("Canvas_Axis-0").style.backgroundColor = ""
     document.getElementById("Canvas_Axis-1").style.backgroundColor = ""
+    */
 
     if (visualizationState['Highlight'] == target || target == "ALL") {
       visualizationState['Highlight'] = ""
@@ -586,7 +592,7 @@ export class InfoVisInteractionService {
     else {
       visualizationState['Highlight'] = target
       visualizationState['CheckedHighlight'][target] = true
-
+/*
       if (visualizationState["Values"].indexOf(target) == 0) {
         document.getElementById("Canvas_Axis-1").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
@@ -595,6 +601,7 @@ export class InfoVisInteractionService {
         document.getElementById("Canvas_Axis-0").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
+      */
     }
     if((unique && that.overallMode == 0) || (that.overallMode == 2)){
 
@@ -615,8 +622,8 @@ export class InfoVisInteractionService {
       target = ""
     }
 
-    document.getElementById("Canvas_Axis-0").style.backgroundColor = ""
-    document.getElementById("Canvas_Axis-1").style.backgroundColor = ""
+    //document.getElementById("Canvas_Axis-0").style.backgroundColor = ""
+    //document.getElementById("Canvas_Axis-1").style.backgroundColor = ""
 
     if (visualizationState['Highlight'] == target || target == "ALL") {
       visualizationState['Highlight'] = ""
@@ -625,13 +632,13 @@ export class InfoVisInteractionService {
       if (visualizationState["Values"].indexOf(target) == 0) {
         visualizationState['Highlight'] = visualizationState["Values"][1]
         visualizationState['CheckedHighlight'][visualizationState["Values"][1]] = true
-        document.getElementById("Canvas_Axis-0").style.backgroundColor = "rgba(255, 255, 255, .6)"
+        //document.getElementById("Canvas_Axis-0").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
       else {
         visualizationState['Highlight'] = visualizationState["Values"][0]
         visualizationState['CheckedHighlight'][visualizationState["Values"][0]] = true
-        document.getElementById("Canvas_Axis-1").style.backgroundColor = "rgba(255, 255, 255, .6)"
+        //document.getElementById("Canvas_Axis-1").style.backgroundColor = "rgba(255, 255, 255, .6)"
 
       }
     }

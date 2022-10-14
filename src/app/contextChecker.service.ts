@@ -15,11 +15,13 @@ export class ContextCheckerService {
 
   public restAPI = "https://interactive-analytics.org:3006"
 
+  public currentChecks: boolean[] = []
   public currentConstraintText: any[] = []
   public currentConstraints = []
   public constraints = []
   public constraintText: any[] = []
   public suggestions = []
+
 
   public numberOfAmbiguities = 1
   public ambiguitiesStart = []
@@ -66,7 +68,7 @@ export class ContextCheckerService {
     }
   }
 
-  async getNumberOfAmbiguities(that){
+  async getNumberOfAmbiguities(that) {
     var number = 0
     return number
 
@@ -82,7 +84,7 @@ export class ContextCheckerService {
 
     this.ambiguityStartPrevious = false
     this.ambiguityStartNext = false
-    if(mode == "during"){
+    if (mode == "during") {
       that.displayAmbiguityDialogStart = open
     }
 
@@ -146,7 +148,19 @@ export class ContextCheckerService {
           }
           else if (condition["property"].split("_").includes("equals")) {
             var head = condition["head"].split("$")
-            if (head.length > 1) {
+            if (head.length > 1 && head[0] == "Aggregate") {
+              target = "Values_" + head[1] + "_" + head[0]
+              this.deriveInterpretations(that, "Values_" + head[1] + "_" + head[0], that.visCanvas.currentVisualizationState, false)
+            }
+            else if (head.length > 1) {
+              if (head[1] == "FilterC") {
+                target = "Filter_" + head[0]
+                this.deriveInterpretations(that, "Filter_" + condition["head"], that.visCanvas.currentVisualizationState, false)
+              }
+              else if (head[1] == "ColorHighlight") {
+                target = "ColorHighlight"
+                this.deriveInterpretations(that, "ColorHighlight", that.visCanvas.currentVisualizationState, false)
+              }
               target = "Values_" + head[1] + "_" + head[0]
               this.deriveInterpretations(that, "Values_" + head[1] + "_" + head[0], that.visCanvas.currentVisualizationState, false)
             }
@@ -168,13 +182,23 @@ export class ContextCheckerService {
               this.currentConstraintText.splice(j, 1)
             }
           }
-          this.ambiguousConditions.push({ "Condition": JSON.parse(JSON.stringify(this.currentConstraints)), "ConditionText": JSON.parse(JSON.stringify(this.currentConstraintText)), "Amount": ambiguousConditionsLocal[i]["Amount"] , "Target": target})
+          this.ambiguousConditions.push({ "Condition": JSON.parse(JSON.stringify(this.currentConstraints)), "ConditionText": JSON.parse(JSON.stringify(this.currentConstraintText)), "Amount": ambiguousConditionsLocal[i]["Amount"], "Target": target })
         }
 
-        if(this.ambiguousConditions.length > 1 && open){
+        if (this.ambiguousConditions.length > 1 && open) {
           this.ambiguityStartNext = true
         }
-        if(this.ambiguousConditions.length >= 1 && open){
+        if (this.ambiguousConditions.length >= 1 && open) {
+          this.currentChecks = []
+          for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
+            if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+              this.currentChecks.push(true)
+            }
+            else {
+              this.currentChecks.push(false)
+            }
+
+          }
           that.putTargetElement(this.ambiguousConditions[this.ambiguityStartIndex]["Target"])
 
           if (that.line == null) {
@@ -185,17 +209,17 @@ export class ContextCheckerService {
             that.showConnection()
           }
         }
-        if(mode == "start"){
+        if (mode == "start") {
           that.displayDialog = false
-          if(this.ambiguousConditions.length > 0){
+          if (this.ambiguousConditions.length > 0) {
             that.displayAmbiguityDialogStart = open
           }
-          else{
+          else {
             that.showSuggestions('current')
           }
         }
 
-        
+
       },
       error: error => {
         console.log(error.message);
@@ -266,7 +290,7 @@ export class ContextCheckerService {
     })
   }
 
-  getAmbiguousNumber(that){
+  getAmbiguousNumber(that) {
 
     var nlInput = ""
     for (var i = 0; i < that.training.nlInput.length; i++) {
@@ -299,14 +323,25 @@ export class ContextCheckerService {
 
     await this.deriveInterpretations(that, target, that.visCanvas.currentVisualizationState, true)
 
-
-    for (var i = this.currentConstraintText.length - 1; i >= 0; i--) {
-      for (var j = 0; j < this.constraintText.length; j++) {
-        if (this.currentConstraintText[i]["Text"] == this.constraintText[j]) {
-          this.currentConstraintText.splice(i, 1)
-          this.currentConstraints.splice(i, 1)
-          break
+    /*
+        for (var i = this.currentConstraintText.length - 1; i >= 0; i--) {
+          for (var j = 0; j < this.constraintText.length; j++) {
+            if (this.currentConstraintText[i]["Text"] == this.constraintText[j]) {
+              this.currentConstraintText.splice(i, 1)
+              this.currentConstraints.splice(i, 1)
+              break
+            }
+          }
         }
+        */
+
+    this.currentChecks = []
+    for (var i = 0; i < this.currentConstraintText.length; i++) {
+      if (this.constraintText.includes(this.currentConstraintText[i]["Text"])) {
+        this.currentChecks.push(true)
+      }
+      else {
+        this.currentChecks.push(false)
       }
     }
   }
@@ -317,14 +352,14 @@ export class ContextCheckerService {
 
 
     if (splitTarget.length > 0) {
-      if(splitTarget[0] == "Canvas"){
-        if(splitTarget[1] == "x-Axis"){
+      if (splitTarget[0] == "Canvas") {
+        if (splitTarget[1] == "x-Axis") {
           splitTarget = ["x-Axis", that.visCanvas.currentVisualizationState["x-Axis"][0]]
         }
-        else if(splitTarget[1] == "Axis-0"){
+        else if (splitTarget[1] == "Axis-0") {
           splitTarget = ["Values", that.visCanvas.currentVisualizationState["Values"][0], "Highlight"]
         }
-        else if(splitTarget[1] == "Axis-1"){
+        else if (splitTarget[1] == "Axis-1") {
           splitTarget = ["Values", that.visCanvas.currentVisualizationState["Values"][1], "Highlight"]
         }
       }
@@ -540,13 +575,21 @@ export class ContextCheckerService {
           if (splitTarget.length > 3) {
             if (configuration["FilterC"][splitTarget[1]].includes(splitTarget[3])) {
               this.currentConstraintText.push({ "Text": "**" + splitTarget[3] + "** was selected.", "Type": "StatusSub", "Target": splitTarget[1] })
-              this.currentConstraints.push([{ head: splitTarget[1], property: "contains", tail: splitTarget[3] }])
+              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "contains", tail: splitTarget[3] }])
             }
             else {
               this.currentConstraintText.push({ "Text": "**" + splitTarget[3] + "** was **not** selected.", "Type": "StatusSub", "Target": splitTarget[1] })
-              this.currentConstraints.push([{ head: splitTarget[1], property: "NOT_contains", tail: splitTarget[3] }])
+              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "NOT_contains", tail: splitTarget[3] }])
             }
 
+          }
+          if (that.visCanvas.optionDictionary[splitTarget[1]].every(element => configuration["FilterC"][splitTarget[1]].includes(element['label']))) {
+            this.currentConstraintText.push({ "Text": "All **" + splitTarget[1] + "** were selected.", "Type": "StatusSub", "Target": splitTarget[1] })
+            this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "equals", tail: "ALL" }])
+          }
+          else {
+            this.currentConstraintText.push({ "Text": "**Not** all **" + splitTarget[1] + "** were selected.", "Type": "StatusSub", "Target": splitTarget[1] })
+            this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "NOT_equals", tail: "ALL" }])
           }
         }
         if (configuration[splitTarget[0]].length != 0) {
@@ -558,29 +601,52 @@ export class ContextCheckerService {
       }
 
     }
-
   }
 
 
-  addConstraint(that, targetText) {
-    
-    var index = 0
+  addConstraint(that, targetText, event, selected) {
+    console.log(event)
+
+    document.getElementById("constraintsHighlight")["style"]["box-shadow"] = "0px 0px 10px 2px #9333ea"
+
+    var index = -1
     for (var i = 0; i < this.currentConstraintText.length; i++) {
       if (this.currentConstraintText[i]["Text"] == targetText["Text"]) {
         index = i
         break
       }
     }
-    this.constraintText.unshift(this.currentConstraintText[index]["Text"])
-    this.constraints.unshift(this.currentConstraints[index])
 
-    for (var j = 0; j < this.currentConstraintText.length; j++) {
-      if (this.currentConstraintText[j]["Text"] == this.currentConstraintText[index]["Text"]) {
-        this.currentConstraintText.splice(j, 1)
-        this.currentConstraints.splice(j, 1)
+    if (this.currentChecks.length > index && !this.currentChecks[index]) {
+
+      this.constraintText.unshift(this.currentConstraintText[index]["Text"])
+      this.constraints.unshift(this.currentConstraints[index])
+      this.currentChecks[index] = true
+    }
+    else if (this.currentChecks.length > index && this.currentChecks[index]) {
+
+      var targetIndex = this.constraintText.indexOf(targetText["Text"])
+      this.constraintText.splice(targetIndex, 1)
+      this.constraints.splice(targetIndex, 1)
+      this.currentChecks[index] = false
+    }
+
+    this.getAmbiguousNumber(that)
+    setTimeout(element => { $('#constraintsHighlight').css("box-shadow", ""); }, 1500)
+
+  }
+
+  getIndex(that, text) {
+    var index = -1
+    for (var i = 0; i < this.currentConstraintText.length; i++) {
+      if (this.currentConstraintText[i]["Text"] == text) {
+        index = i
       }
     }
-    this.getAmbiguousNumber(that)
+    if (this.currentChecks.length > index && this.currentChecks[index]) {
+      return true
+    }
+    return false
   }
 
   removeConstraint(that, constraintText) {
@@ -588,10 +654,30 @@ export class ContextCheckerService {
     this.constraintText.splice(targetIndex, 1)
     this.constraints.splice(targetIndex, 1)
 
-    if (this.currentTarget != "" || that.displaySuggestionDialog) {
-      this.getPossibleInterpretations(that, this.currentTarget)
-    }
     this.getAmbiguousNumber(that)
+
+    if (that.displaySuggestionDialog) {
+      this.currentChecks = []
+      for (var i = 0; i < this.currentConstraintText.length; i++) {
+        if (this.constraintText.includes(this.currentConstraintText[i]["Text"])) {
+          this.currentChecks.push(true)
+        }
+        else {
+          this.currentChecks.push(false)
+        }
+      }
+    }
+    else if (that.displayAmbiguityDialogStart) {
+      this.currentChecks = []
+      for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
+        if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+          this.currentChecks.push(true)
+        }
+        else {
+          this.currentChecks.push(false)
+        }
+      }
+    }
   }
 
   useAccordion(type) {
@@ -609,13 +695,13 @@ export class ContextCheckerService {
         return "... the Status of " + elements[0]["Target"]
       }
       else if (type == "Type") {
-        if(typeof(elements[0]["Target"]) == 'undefined' ){
+        if (typeof (elements[0]["Target"]) == 'undefined') {
           return "... the Data Field Type of " + this.currentConstraintText.filter(element => element['Type'] == "Status")[0]["Target"]
         }
-        else{
+        else {
           return "... the Data Field Type of " + elements[0]["Target"]
         }
-        
+
       }
       else if (type == "StatusSub") {
         return "... the Status of Subcategories of " + elements[0]["Target"]
@@ -671,6 +757,16 @@ export class ContextCheckerService {
     }
     that.putTargetElement(this.ambiguousConditions[this.ambiguityStartIndex]["Target"])
 
+    this.currentChecks = []
+    for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
+      if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+        this.currentChecks.push(true)
+      }
+      else {
+        this.currentChecks.push(false)
+      }
+    }
+
     if (that.line == null) {
       that.showConnection()
     }
@@ -694,12 +790,13 @@ export class ContextCheckerService {
         return "... the Status of " + elements[0]["Target"]
       }
       else if (type == "Type") {
-        if(typeof(elements[0]["Target"]) == 'undefined' ){
+        if (typeof (elements[0]["Target"]) == 'undefined') {
           return "... the Data Field Type of " + this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].filter(element => element['Type'] == "Status")[0]["Target"]
         }
-        else{
+        else {
           return "... the Data Field Type of " + elements[0]["Target"]
-        }      }
+        }
+      }
       else if (type == "StatusSub") {
         return "... the Status of Subcategories of " + elements[0]["Target"]
       }
@@ -713,16 +810,38 @@ export class ContextCheckerService {
     return ""
   }
 
-  addConstraintStart(that, targetText) {
-    var index = 0
+  addConstraintStart(that, targetText, event) {
+
+    var index = -1
     for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
       if (this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"] == targetText["Text"]) {
         index = i
-        break
       }
     }
-    this.constraintText.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][index]["Text"])
-    this.constraints.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index])
+
+    console.log(event)
+    document.getElementById("constraintsHighlight")["style"]["box-shadow"] = "0px 0px 10px 2px #9333ea"
+
+    if (this.currentChecks.length > index && !this.currentChecks[index]) {
+
+      this.constraintText.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][index]["Text"])
+      this.constraints.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index])
+      this.currentChecks[index] = true
+
+    }
+    else if (this.currentChecks.length > index && this.currentChecks[index]) {
+      var targetIndex = this.constraintText.indexOf(targetText["Text"])
+      this.constraintText.splice(targetIndex, 1)
+      this.constraints.splice(targetIndex, 1)
+
+      this.currentChecks[index] = false
+
+      this.getAmbiguousNumber(that)
+    }
+
+
+
+    /**
 
     for (var j = 0; j < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; j++) {
       if (this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][j]["Text"] == this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][index]["Text"]) {
@@ -730,8 +849,24 @@ export class ContextCheckerService {
         this.ambiguousConditions[this.ambiguityStartIndex]["Condition"].splice(j, 1)
       }
     }
+    */
 
     this.getAmbiguousNumber(that)
+    setTimeout(element => { $('#constraintsHighlight').css("box-shadow", ""); }, 1500)
+
+  }
+
+  getIndexStart(that, text) {
+    var index = -1
+    for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
+      if (this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"] == text) {
+        index = i
+      }
+    }
+    if (this.currentChecks.length > index && this.currentChecks[index]) {
+      return true
+    }
+    return false
   }
 
 

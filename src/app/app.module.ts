@@ -46,6 +46,10 @@ import {OverlayPanelModule} from 'primeng/overlaypanel';
 import {ProgressSpinnerModule} from 'primeng/progressspinner';
 import {ConfirmPopupModule} from 'primeng/confirmpopup';
 import {SelectButtonModule} from 'primeng/selectbutton';
+import {SkeletonModule} from 'primeng/skeleton';
+import {CheckboxModule} from 'primeng/checkbox';
+
+
 
 
 
@@ -92,7 +96,9 @@ import {SelectButtonModule} from 'primeng/selectbutton';
     OverlayPanelModule,
     ProgressSpinnerModule,
     ConfirmPopupModule,
-    SelectButtonModule
+    SelectButtonModule,
+    SkeletonModule,
+    CheckboxModule
     ],
   providers: [InfoVisInteractionService, TrainingService, NLGeneration, ContextCheckerService, StateHandlingService],
   bootstrap: [AppComponent]
