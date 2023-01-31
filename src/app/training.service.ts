@@ -9,8 +9,9 @@ export class TrainingService {
   public initialVisualizationState: any = {}
   public initialEntities: any = { "DATAFIELD": [], "VISUALIZATION": [] }
   public possibleActions: any = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
+  public actionScriptSize = [0, 0, 0, 0, 0, 0, 0, 0, 0]
   public initialActions: any = []
-  public baseAction = { "Action": {}, "ID": 0, "Score": 0, 'ScoreFuture': 0, "Constraints": [], "ConstraintsText": [] }
+  public baseAction = { "Action": {}, "ID": 0, "Score": 0, 'ScoreFuture': 0, "Constraints": [], "ConstraintsText": [], "scriptSelect": false }
   public selectedAmbiguity = 1
   public verbs = ["ADD", "REMOVE"]
   public nlInput = []
@@ -19,6 +20,7 @@ export class TrainingService {
 
 
   async initializeTraining(that, possibleActions) {
+    this.actionScriptSize = []
     this.initialize = true
     this.selectedAmbiguity = 0
 
@@ -27,12 +29,14 @@ export class TrainingService {
     this.initialVisualizationState = JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState))
 
     this.possibleActions = [JSON.parse(JSON.stringify(this.baseAction))]
+    this.actionScriptSize.push(0)
     that.visCanvas.possibleVisualizationStates.push(JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState)))
     await that.visCanvas.createVisualization(that, that.visCanvas.currentVisualizationState, "#Ambiguity_0", "small")
 
     var index = 0
     for (var i = 0; i < possibleActions.length; i++) {
-      this.possibleActions.push({ "Action": {}, "ID": possibleActions[i]["ID"], "Score": possibleActions[i]["Score"], "ScoreFuture": possibleActions[i]["ScoreFuture"], 'newAmbiguity':  possibleActions[i]["newAmbiguity"], "Constraints": possibleActions[i]["Constraints"], "ConstraintsText": possibleActions[i]["ConstraintsText"] })
+      this.actionScriptSize.push(0)
+      this.possibleActions.push({ "Action": {}, "ID": possibleActions[i]["ID"], "Score": possibleActions[i]["Score"], "ScoreFuture": possibleActions[i]["ScoreFuture"], 'newAmbiguity': possibleActions[i]["newAmbiguity"], "Constraints": possibleActions[i]["Constraints"], "ConstraintsText": possibleActions[i]["ConstraintsText"], "scriptSelect": false })
       that.visCanvas.possibleVisualizationStates.push(JSON.parse(JSON.stringify(that.visCanvas.currentVisualizationState)))
       //element["Action"].forEach(actionEntity => {
       await that.infoVisInteraction.processAction(that, that.visCanvas.possibleVisualizationStates[possibleActions[i]["ID"]], possibleActions[i]["Action"], true, possibleActions[i]["ID"])
@@ -45,7 +49,7 @@ export class TrainingService {
     if (index > 0) {
       this.selectedAmbiguity = 1
       that.visCanvas.currentVisualizationState = that.visCanvas.possibleVisualizationStates[1]
-      that.nlg.initializeUnderstandingDisplay(that, this.possibleActions[1]["Action"], "training")
+      //that.nlg.initializeUnderstandingDisplay(that, this.possibleActions[1]["Action"], "training", this.selectedAmbiguity)
     }
     else {
       that.visCanvas.currentVisualizationState = that.visCanvas.possibleVisualizationStates[0]
@@ -71,27 +75,27 @@ export class TrainingService {
     }
     else {
 
-      if(that.overallMode == 2){
+      if (that.overallMode == 2) {
         var integralAction = {}
         var refinedActionList = that.lastSpeechInteraction
       }
-      else{
+      else {
         if (!ambiguity) {
           ambiguity = this.selectedAmbiguity
         }
-  
+
         var integralAction = {}
         var refinedActionList = this.possibleActions[ambiguity]["Action"]
       }
 
-      
+
 
       if (key == "VISUALIZATION") {
         integralAction = refinedActionList[key]
         if (typeof (integralAction) == "undefined") {
           integralAction = { "ADD": [], "REMOVE": [] }
         }
-        else{
+        else {
           contradicting = true
         }
         delete refinedActionList[key]
@@ -175,11 +179,14 @@ export class TrainingService {
                 integralAction[this.verbs.filter(element => element != verb)[0]] = integralAction[this.verbs.filter(element => element != verb)[0]].filter(id => id != element)
               }
               else {
-                if (key != "Filter") {
+                if (key == "Highlight") {
                   integralAction[verb] = [element]
+                  
+
                 }
                 else {
                   integralAction[verb].push(element)
+
                 }
               }
             })
@@ -207,6 +214,7 @@ export class TrainingService {
 
                 refinedActionList["FilterC"]["REMOVE"] = refinedActionList["FilterC"]["REMOVE"].filter(filterKey => filterKey["KEY"] != elements[i])
               }
+
             }
           }
 
@@ -227,7 +235,7 @@ export class TrainingService {
 
 
         if (items.includes("ALL")) {
-          if(opposit.length != 0){
+          if (opposit.length != 0) {
             contradicting = true
           }
           opposit = []
@@ -338,8 +346,8 @@ export class TrainingService {
       }
 
       var allKeys = Object.keys(refinedActionList)
-      for(var i = 0; i < allKeys.length; i++){
-        if(!((Object.keys(refinedActionList[allKeys[i]]).includes("ADD") &&  refinedActionList[allKeys[i]]["ADD"].length > 0) || (Object.keys(refinedActionList[allKeys[i]]).includes("REMOVE") &&  refinedActionList[allKeys[i]]["REMOVE"].length > 0 ))){
+      for (var i = 0; i < allKeys.length; i++) {
+        if (!((Object.keys(refinedActionList[allKeys[i]]).includes("ADD") && refinedActionList[allKeys[i]]["ADD"].length > 0) || (Object.keys(refinedActionList[allKeys[i]]).includes("REMOVE") && refinedActionList[allKeys[i]]["REMOVE"].length > 0))) {
           delete refinedActionList[allKeys[i]]
         }
 
@@ -351,9 +359,9 @@ export class TrainingService {
           await that.visCanvas.createVisualization(that, visualizationState, "#Ambiguity_" + ambiguity, "small")
         }
 
-        await that.nlg.initializeUnderstandingDisplay(that, refinedActionList, "training")
+        await that.nlg.initializeUnderstandingDisplay(that, refinedActionList, "training", ambiguity)
       }
-      else if (contradicting && !that.speechInteraction){
+      else if (contradicting && !that.speechInteraction && !that.revokedSpeech) {
         that.askForTraining = true
 
         that.directLine
@@ -387,9 +395,21 @@ export class TrainingService {
 
         for (var i = 0; i < this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()].length; i++) {
 
-          this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"].filter(filterKey => filterKey["KEY"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+          if (that.visCanvas.dataFieldsConfig[this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i]] == 'quantitative' && this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]) {
 
-          this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"].filter(filterKey => filterKey["KEY"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+            if (this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["ADD"])
+              this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["ADD"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["ADD"].filter(filterKey => filterKey["Filter"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+
+            if (this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["REMOVE"])
+              this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["REMOVE"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterN"]["REMOVE"].filter(filterKey => filterKey["Filter"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+
+          }
+          else if(this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]){
+            if (this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"])
+              this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["ADD"].filter(filterKey => filterKey["KEY"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+            if (this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"])
+              this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"] = this.possibleActions[this.selectedAmbiguity]["Action"]["FilterC"]["REMOVE"].filter(filterKey => filterKey["KEY"] != this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()][i])
+          }
         }
 
         this.possibleActions[this.selectedAmbiguity]["Action"][targetElement[0].toString()][targetElement[1].toString()] = []
@@ -415,12 +435,12 @@ export class TrainingService {
     }
 
     var allKeys = Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"])
-      for(var i = 0; i < allKeys.length; i++){
-        if(!((Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]).includes("ADD") &&  this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]["ADD"].length > 0) || (Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]).includes("REMOVE") &&  this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]["REMOVE"].length > 0 ))){
-          delete this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]
-        }
-
+    for (var i = 0; i < allKeys.length; i++) {
+      if (!((Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]).includes("ADD") && this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]["ADD"].length > 0) || (Object.keys(this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]).includes("REMOVE") && this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]["REMOVE"].length > 0))) {
+        delete this.possibleActions[this.selectedAmbiguity]["Action"][allKeys[i]]
       }
+
+    }
   }
 
 

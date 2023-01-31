@@ -48,6 +48,7 @@ import {ConfirmPopupModule} from 'primeng/confirmpopup';
 import {SelectButtonModule} from 'primeng/selectbutton';
 import {SkeletonModule} from 'primeng/skeleton';
 import {CheckboxModule} from 'primeng/checkbox';
+import { ScriptVisComponent } from './script-vis/script-vis.component';
 
 
 
@@ -63,7 +64,8 @@ import {CheckboxModule} from 'primeng/checkbox';
   declarations: [
     AppComponent,
     MainViewComponent,
-    VisualizationCanvasComponent
+    VisualizationCanvasComponent,
+    ScriptVisComponent
   ],
   imports: [
     BrowserModule,

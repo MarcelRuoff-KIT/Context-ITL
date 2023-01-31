@@ -701,11 +701,13 @@ export class InfoVisInteractionService {
     else if(values.length > 0) {
       var valuesFiltered = []
       Object.keys(optionDictionary).forEach(key => { 
-        if(values.some(element => optionDictionary[key].includes(element))){
-          valuesFiltered.concat(
-          optionDictionary[key].filter(item => {
-            !values.includes(item)
-          }))
+        if(optionDictionary[key].some(element => values.includes(element["label"]))){
+          optionDictionary[key].forEach(item => {
+            if(!values.includes(item["label"])){
+              valuesFiltered.push(item["label"])
+            }
+          })
+          
         }
       })
 

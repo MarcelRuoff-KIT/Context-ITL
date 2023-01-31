@@ -13,7 +13,9 @@ export class ContextCheckerService {
 
   public finalActions = {}
 
+
   public restAPI = "https://interactive-analytics.org:3006"
+  //public restAPI = "https://b4d0-2a00-1398-9-fb03-b4d6-8f26-952a-d740.ngrok.io"
 
   public currentChecks: boolean[] = []
   public currentConstraintText: any[] = []
@@ -76,6 +78,7 @@ export class ContextCheckerService {
 
   async getAmbiguousActionsStart(that, mode, open) {
     that.displaySuggestionHelp = false
+    that.displaySuggestionDialog = false
 
     var nlInput = ""
     for (var i = 0; i < that.training.nlInput.length; i++) {
@@ -96,6 +99,7 @@ export class ContextCheckerService {
         this.ambiguitiesStart = data["Ambiguities"]
         this.ambiguousConditions = []
         var ambiguousConditionsLocal = []
+        var suggestionsLocal = this.suggestions
 
         for (var i = 0; i < this.ambiguitiesStart.length; i++) {
           for (var j = 0; j < this.ambiguitiesStart[i]["Constraints"].length; j++) {
@@ -155,14 +159,16 @@ export class ContextCheckerService {
             else if (head.length > 1) {
               if (head[1] == "FilterC") {
                 target = "Filter_" + head[0]
-                this.deriveInterpretations(that, "Filter_" + condition["head"], that.visCanvas.currentVisualizationState, false)
+                this.deriveInterpretations(that, "Filter_" + condition["head"].split("$")[0], that.visCanvas.currentVisualizationState, false)
               }
               else if (head[1] == "ColorHighlight") {
                 target = "ColorHighlight"
                 this.deriveInterpretations(that, "ColorHighlight", that.visCanvas.currentVisualizationState, false)
               }
+              else{
               target = "Values_" + head[1] + "_" + head[0]
               this.deriveInterpretations(that, "Values_" + head[1] + "_" + head[0], that.visCanvas.currentVisualizationState, false)
+              }
             }
             else {
               if (head[0] == "VISUALIZATION") {
@@ -183,6 +189,16 @@ export class ContextCheckerService {
             }
           }
           this.ambiguousConditions.push({ "Condition": JSON.parse(JSON.stringify(this.currentConstraints)), "ConditionText": JSON.parse(JSON.stringify(this.currentConstraintText)), "Amount": ambiguousConditionsLocal[i]["Amount"], "Target": target })
+          if (suggestionsLocal.includes(target)) {
+            suggestionsLocal.splice(suggestionsLocal.indexOf(target), 1)
+          }
+        }
+        for (var i = 0; i < suggestionsLocal.length; i++) {
+          this.currentConstraints = []
+          this.currentConstraintText = [];
+          this.deriveInterpretations(that, suggestionsLocal[i], that.visCanvas.currentVisualizationState, false)
+          this.ambiguousConditions.push({ "Condition": JSON.parse(JSON.stringify(this.currentConstraints)), "ConditionText": JSON.parse(JSON.stringify(this.currentConstraintText)), "Amount": 1, "Target": suggestionsLocal[i] })
+
         }
 
         if (this.ambiguousConditions.length > 1 && open) {
@@ -190,14 +206,31 @@ export class ContextCheckerService {
         }
         if (this.ambiguousConditions.length >= 1 && open) {
           this.currentChecks = []
-          for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
-            if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+          for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["Condition"].length; i++) {
+            var included = false
+            for(var j = 0; j < this.constraints.length; j++){
+              if(this.constraints[j][0]["head"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["head"] && this.constraints[j][0]["property"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["property"]){
+                if(this.constraints[j][0]["head"].split("$").length > 1 && ["FilterC", "ColorHighlight"].includes(this.constraints[j][0]["head"].split("$")[1])){
+                  if(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"]) == JSON.stringify(this.constraints[j][0]["tail"])){
+                    included = true
+                  }
+                  else if(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"].every(item => this.constraints[j][0]["tail"].includes(item))){
+                    included = true
+                  }
+                }
+                else{
+                  if(JSON.stringify(this.constraints[j][0]["tail"]) == JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"])){
+                    included = true
+                  }
+                }
+              }
+            }
+            if (included) {
               this.currentChecks.push(true)
             }
             else {
               this.currentChecks.push(false)
             }
-
           }
           that.putTargetElement(this.ambiguousConditions[this.ambiguityStartIndex]["Target"])
 
@@ -266,6 +299,13 @@ export class ContextCheckerService {
 
         if (this.ambiguitiesEnd.length > 1) {
           this.ambiguityNext = true
+        }
+        if (this.ambiguitiesEnd.length > 0) {
+          document.getElementById("ContrInterpretations")["style"]["background"] = "#9333ea";
+          document.getElementById("ContrInterpretations")["style"]["color"] = "white"
+          setTimeout(element => {
+            document.getElementById("ContrInterpretations")["style"]["background"] = "transparent"; document.getElementById("ContrInterpretations")["style"]["color"] = "black";
+          }, 1500)
         }
 
 
@@ -336,14 +376,33 @@ export class ContextCheckerService {
         */
 
     this.currentChecks = []
-    for (var i = 0; i < this.currentConstraintText.length; i++) {
-      if (this.constraintText.includes(this.currentConstraintText[i]["Text"])) {
+    for (var i = 0; i <this.currentConstraints.length; i++) {
+      var included = false
+      for(var j = 0; j < this.constraints.length; j++){
+        if(this.constraints[j][0]["head"] ==this.currentConstraints[i][0]["head"] && this.constraints[j][0]["property"] ==this.currentConstraints[i][0]["property"]){
+          if(this.constraints[j][0]["head"].split("$").length > 1 && ["FilterC", "ColorHighlight"].includes(this.constraints[j][0]["head"].split("$")[1])){
+            if(JSON.stringify(this.currentConstraints[i][0]["tail"]) == JSON.stringify(this.constraints[j][0]["tail"])){
+              included = true
+            }
+            else if(this.currentConstraints[i][0]["tail"].every(item => this.constraints[j][0]["tail"].includes(item))){
+              included = true
+            }
+          }
+          else{
+            if(JSON.stringify(this.constraints[j][0]["tail"]) == JSON.stringify(this.currentConstraints[i][0]["tail"])){
+              included = true
+            }
+          }
+        }
+      }
+      if (included) {
         this.currentChecks.push(true)
       }
       else {
         this.currentChecks.push(false)
       }
     }
+
   }
 
 
@@ -521,11 +580,11 @@ export class ContextCheckerService {
           }
         }
         else {
-          if (genericTarget.length == 1 && constraintFirst) {
+          if (configuration[splitTarget[0]].length == 1 && constraintFirst) {
             this.currentConstraintText.push({ "Text": "There was **one** data field in **" + splitTarget[0] + "**.", "Type": "Status", "Target": splitTarget[0] })
             this.currentConstraints.push([{ head: splitTarget[0], property: "isRange", tail: [1, 1] }])
           }
-          else if (genericTarget.length == 2 && constraintFirst) {
+          else if (configuration[splitTarget[0]].length == 2 && constraintFirst) {
             this.currentConstraintText.push({ "Text": "There were **two** data fields in **" + splitTarget[0] + "**.", "Type": "Status", "Target": splitTarget[0] })
             this.currentConstraints.push([{ head: splitTarget[0], property: "isRange", tail: [2, 2] }])
           }
@@ -541,11 +600,11 @@ export class ContextCheckerService {
 
             }
           }
-          if (genericTarget.length == 1 && !constraintFirst) {
+          if (configuration[splitTarget[0]].length == 1 && !constraintFirst) {
             this.currentConstraintText.push({ "Text": "There was **one** datafield in **" + splitTarget[0] + "**.", "Type": "Status", "Target": splitTarget[0] })
             this.currentConstraints.push([{ head: splitTarget[0], property: "isRange", tail: [1, 1] }])
           }
-          else if (genericTarget.length == 2 && !constraintFirst) {
+          else if (configuration[splitTarget[0]].length == 2 && !constraintFirst) {
             this.currentConstraintText.push({ "Text": "There were **two** datafields in **" + splitTarget[0] + "**.", "Type": "Status", "Target": splitTarget[0] })
             this.currentConstraints.push([{ head: splitTarget[0], property: "isRange", tail: [2, 2] }])
           }
@@ -575,11 +634,11 @@ export class ContextCheckerService {
           if (splitTarget.length > 3) {
             if (configuration["FilterC"][splitTarget[1]].includes(splitTarget[3])) {
               this.currentConstraintText.push({ "Text": "**" + splitTarget[3] + "** was selected.", "Type": "StatusSub", "Target": splitTarget[1] })
-              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "contains", tail: splitTarget[3] }])
+              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "contains", tail: [splitTarget[3]] }])
             }
             else {
               this.currentConstraintText.push({ "Text": "**" + splitTarget[3] + "** was **not** selected.", "Type": "StatusSub", "Target": splitTarget[1] })
-              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "NOT_contains", tail: splitTarget[3] }])
+              this.currentConstraints.push([{ head: splitTarget[1] + "$FilterC", property: "NOT_contains", tail: [splitTarget[3]] }])
             }
 
           }
@@ -597,6 +656,61 @@ export class ContextCheckerService {
           this.currentConstraintText.push({ "Text": "The **" + splitTarget[0] + " Panel** was **not** empty.", "Type": "Status", "Target": splitTarget[0] })
           this.currentConstraints.push([{ head: splitTarget[0], property: "NOT_isRange", tail: [0, 0] }])
         }
+
+      }
+      else if (splitTarget[0] == "ColorHighlight") {
+        var colorTarget = ""
+        if (splitTarget.length == 1) {
+          colorTarget = configuration['Color'][0]
+        }
+        else {
+          var keys = Object.keys(that.visCanvas.optionDictionary)
+          for (var i = 0; i < keys.length; i++) {
+            if (that.visCanvas.optionDictionary[keys[i]].some(element => splitTarget[1] == element["label"])) {
+              colorTarget = keys[i]
+              break
+            }
+          }
+        }
+
+        if (configuration["Color"].includes(colorTarget)) {
+          this.currentConstraintText.push({ "Text": "**" + colorTarget + "** was in **Color**.", "Type": "Status", "Target": "Color" })
+          this.currentConstraints.push([{ head: "Color", property: "contains", tail: colorTarget }])
+        }
+        else {
+          this.currentConstraintText.push({ "Text": "**" + colorTarget + "** was **not** in **Color**.", "Type": "Status", "Target": "Color" })
+          this.currentConstraints.push([{ head: "Color", property: "NOT_contains", tail: colorTarget }])
+
+          if (configuration["Color"].length == 0) {
+            this.currentConstraintText.push({ "Text": "The **Color** was **empty**.", "Type": "Status", "Target": "Color" })
+            this.currentConstraints.push([{ head: "Color", property: "isRange", tail: [0, 0] }])
+          }
+
+        }
+
+        if (splitTarget.length > 1) {
+          if (configuration["ColorHighlight"].includes(splitTarget[1])) {
+            this.currentConstraintText.push({ "Text": "**" + splitTarget[1] + "** was highlighted.", "Type": "StatusSub", "Target": colorTarget })
+            this.currentConstraints.push([{ head: colorTarget + "$ColorHighlight", property: "contains", tail: [splitTarget[1]] }])
+          }
+          else {
+            this.currentConstraintText.push({ "Text": "**" + splitTarget[1] + "** was **not** highlighted.", "Type": "StatusSub", "Target": colorTarget })
+            this.currentConstraints.push([{ head: colorTarget + "$ColorHighlight", property: "NOT_contains", tail: [splitTarget[1]] }])
+          }
+        }
+
+        if (configuration["ColorHighlight"].length == 0 || that.visCanvas.optionDictionary[colorTarget].every(element => configuration["ColorHighlight"].includes(element['label']))) {
+          this.currentConstraintText.push({ "Text": "All **" + colorTarget + "** were highlighted.", "Type": "StatusSub", "Target": colorTarget })
+          this.currentConstraints.push([{ head: colorTarget + "$ColorHighlight", property: "equals", tail: "ALL" }])
+        }
+        else {
+          this.currentConstraintText.push({ "Text": "**Not** all **" + colorTarget + "** were highlighted.", "Type": "StatusSub", "Target": colorTarget })
+          this.currentConstraints.push([{ head: colorTarget + "$ColorHighlight", property: "NOT_equals", tail: "ALL" }])
+        }
+
+
+
+
 
       }
 
@@ -618,9 +732,27 @@ export class ContextCheckerService {
     }
 
     if (this.currentChecks.length > index && !this.currentChecks[index]) {
+      var head = this.currentConstraints[index][0]["head"].split("$")
+      var added = false
+      if (head.length > 1 && (head[1] == "FilterC" || head[1] == "ColorHighlight")) {
+        var preIndex = -1
+        for (var i = 0; i < this.constraints.length; i++) {
+          if (this.constraints[i][0]["head"] == this.currentConstraints[index][0]["head"] && this.constraints[i][0]["property"] == this.currentConstraints[index][0]["property"]) {
+            this.constraints[i][0]["tail"].push.apply(this.constraints[i][0]["tail"], JSON.parse(JSON.stringify(this.currentConstraints[index][0]["tail"])))
 
-      this.constraintText.unshift(this.currentConstraintText[index]["Text"])
-      this.constraints.unshift(this.currentConstraints[index])
+            var text = this.constraintText[i].split("**")
+            text[1] = that.nlg.makeCombination(this.constraints[i][0]["tail"])
+            this.constraintText[i] = text.join("**")
+            added = true
+            break
+          }
+        }
+      }
+      if (!added) {
+        this.constraintText.unshift(JSON.parse(JSON.stringify(this.currentConstraintText[index]["Text"])))
+        this.constraints.unshift(JSON.parse(JSON.stringify(this.currentConstraints[index])))
+      }
+
       this.currentChecks[index] = true
     }
     else if (this.currentChecks.length > index && this.currentChecks[index]) {
@@ -632,6 +764,7 @@ export class ContextCheckerService {
     }
 
     this.getAmbiguousNumber(that)
+    this.getAmbiguousActionsEnd(that, false)
     setTimeout(element => { $('#constraintsHighlight').css("box-shadow", ""); }, 1500)
 
   }
@@ -658,8 +791,26 @@ export class ContextCheckerService {
 
     if (that.displaySuggestionDialog) {
       this.currentChecks = []
-      for (var i = 0; i < this.currentConstraintText.length; i++) {
-        if (this.constraintText.includes(this.currentConstraintText[i]["Text"])) {
+      for (var i = 0; i <this.currentConstraints.length; i++) {
+        var included = false
+        for(var j = 0; j < this.constraints.length; j++){
+          if(this.constraints[j][0]["head"] ==this.currentConstraints[i][0]["head"] && this.constraints[j][0]["property"] ==this.currentConstraints[i][0]["property"]){
+            if(this.constraints[j][0]["head"].split("$").length > 1 && ["FilterC", "ColorHighlight"].includes(this.constraints[j][0]["head"].split("$")[1])){
+              if(JSON.stringify(this.currentConstraints[i][0]["tail"]) == JSON.stringify(this.constraints[j][0]["tail"])){
+                included = true
+              }
+              else if(this.currentConstraints[i][0]["tail"].every(item => this.constraints[j][0]["tail"].includes(item))){
+                included = true
+              }
+            }
+            else{
+              if(JSON.stringify(this.constraints[j][0]["tail"]) == JSON.stringify(this.currentConstraints[i][0]["tail"])){
+                included = true
+              }
+            }
+          }
+        }
+        if (included) {
           this.currentChecks.push(true)
         }
         else {
@@ -669,8 +820,26 @@ export class ContextCheckerService {
     }
     else if (that.displayAmbiguityDialogStart) {
       this.currentChecks = []
-      for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
-        if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+      for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["Condition"].length; i++) {
+        var included = false
+        for(var j = 0; j < this.constraints.length; j++){
+          if(this.constraints[j][0]["head"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["head"] && this.constraints[j][0]["property"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["property"]){
+            if(this.constraints[j][0]["head"].split("$").length > 1 && ["FilterC", "ColorHighlight"].includes(this.constraints[j][0]["head"].split("$")[1])){
+              if(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"]) == JSON.stringify(this.constraints[j][0]["tail"])){
+                included = true
+              }
+              else if(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"].every(item => this.constraints[j][0]["tail"].includes(item))){
+                included = true
+              }
+            }
+            else{
+              if(JSON.stringify(this.constraints[j][0]["tail"]) == JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"])){
+                included = true
+              }
+            }
+          }
+        }
+        if (included) {
           this.currentChecks.push(true)
         }
         else {
@@ -692,25 +861,25 @@ export class ContextCheckerService {
     var elements = this.currentConstraintText.filter(element => element['Type'] == type)
     if (elements.length > 0) {
       if (type == "Status") {
-        return "... the Status of " + elements[0]["Target"]
+        return "Status of " + elements[0]["Target"]
       }
       else if (type == "Type") {
         if (typeof (elements[0]["Target"]) == 'undefined') {
-          return "... the Data Field Type of " + this.currentConstraintText.filter(element => element['Type'] == "Status")[0]["Target"]
+          return "Data Field Type of " + this.currentConstraintText.filter(element => element['Type'] == "Status")[0]["Target"]
         }
         else {
-          return "... the Data Field Type of " + elements[0]["Target"]
+          return "Data Field Type of " + elements[0]["Target"]
         }
 
       }
       else if (type == "StatusSub") {
-        return "... the Status of Subcategories of " + elements[0]["Target"]
+        return "Status of Subcategories of " + elements[0]["Target"]
       }
       else if (type == "Aggregate") {
-        return "... the Aggregate Value of " + elements[0]["Target"]
+        return "Aggregate Value of " + elements[0]["Target"]
       }
       else if (type == "Highlight") {
-        return "... the Highlighted Values"
+        return "Highlighted Values"
       }
     }
     return ""
@@ -758,8 +927,26 @@ export class ContextCheckerService {
     that.putTargetElement(this.ambiguousConditions[this.ambiguityStartIndex]["Target"])
 
     this.currentChecks = []
-    for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
-      if (this.constraintText.includes(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][i]["Text"])) {
+    for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["Condition"].length; i++) {
+      var included = false
+      for(var j = 0; j < this.constraints.length; j++){
+        if(this.constraints[j][0]["head"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["head"] && this.constraints[j][0]["property"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["property"]){
+          if(this.constraints[j][0]["head"].split("$").length > 1 && ["FilterC", "ColorHighlight"].includes(this.constraints[j][0]["head"].split("$")[1])){
+            if(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"]) == JSON.stringify(this.constraints[j][0]["tail"])){
+              included = true
+            }
+            else if(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"].every(item => this.constraints[j][0]["tail"].includes(item))){
+              included = true
+            }
+          }
+          else{
+            if(JSON.stringify(this.constraints[j][0]["tail"]) == JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][i][0]["tail"])){
+              included = true
+            }
+          }
+        }
+      }
+      if (included) {
         this.currentChecks.push(true)
       }
       else {
@@ -787,30 +974,31 @@ export class ContextCheckerService {
     var elements = this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].filter(element => element['Type'] == type)
     if (elements.length > 0) {
       if (type == "Status") {
-        return "... the Status of " + elements[0]["Target"]
+        return "Status of " + elements[0]["Target"]
       }
       else if (type == "Type") {
         if (typeof (elements[0]["Target"]) == 'undefined') {
-          return "... the Data Field Type of " + this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].filter(element => element['Type'] == "Status")[0]["Target"]
+          return "Data Field Type of " + this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].filter(element => element['Type'] == "Status")[0]["Target"]
         }
         else {
-          return "... the Data Field Type of " + elements[0]["Target"]
+          return "Data Field Type of " + elements[0]["Target"]
         }
       }
       else if (type == "StatusSub") {
-        return "... the Status of Subcategories of " + elements[0]["Target"]
+        return "Status of Subcategories of " + elements[0]["Target"]
       }
       else if (type == "Aggregate") {
-        return "... the Aggregate Value of " + elements[0]["Target"]
+        return "Aggregate Value of " + elements[0]["Target"]
       }
       else if (type == "Status") {
-        return "... the Highlighted Values"
+        return "Highlighted Values"
       }
     }
     return ""
   }
 
   addConstraintStart(that, targetText, event) {
+    var added = false
 
     var index = -1
     for (var i = 0; i < this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"].length; i++) {
@@ -824,8 +1012,26 @@ export class ContextCheckerService {
 
     if (this.currentChecks.length > index && !this.currentChecks[index]) {
 
-      this.constraintText.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][index]["Text"])
-      this.constraints.unshift(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index])
+      var head = this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index][0]["head"].split("$")
+      if (head.length > 1 && (head[1] == "FilterC" || head[1] == "ColorHighlight")) {
+        var preIndex = -1
+        for (var i = 0; i < this.constraints.length; i++) {
+          if (this.constraints[i][0]["head"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index][0]["head"] && this.constraints[i][0]["property"] == this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index][0]["property"]) {
+            this.constraints[i][0]["tail"].push.apply(this.constraints[i][0]["tail"], JSON.parse(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index][0]["tail"])))
+
+            var text = this.constraintText[i].split("**")
+            text[1] = that.nlg.makeCombination(this.constraints[i][0]["tail"])
+            this.constraintText[i] = text.join("**")
+            added = true
+            break
+          }
+        }
+      }
+      if (!added) {
+        this.constraintText.unshift(JSON.parse(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["ConditionText"][index]["Text"])))
+        this.constraints.unshift(JSON.parse(JSON.stringify(this.ambiguousConditions[this.ambiguityStartIndex]["Condition"][index])))
+      }
+
       this.currentChecks[index] = true
 
     }
@@ -836,7 +1042,7 @@ export class ContextCheckerService {
 
       this.currentChecks[index] = false
 
-      this.getAmbiguousNumber(that)
+
     }
 
 
@@ -850,7 +1056,7 @@ export class ContextCheckerService {
       }
     }
     */
-
+    this.getAmbiguousActionsEnd(that, false)
     this.getAmbiguousNumber(that)
     setTimeout(element => { $('#constraintsHighlight').css("box-shadow", ""); }, 1500)
 

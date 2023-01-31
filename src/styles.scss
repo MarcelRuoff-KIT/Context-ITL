@@ -82,6 +82,7 @@ li.p-autocomplete-token{
 }
 .p-accordion-content{
   padding: 0.5rem !important;
+  cursor: default;
 }
 
 .p-multiselect-item{
@@ -114,7 +115,9 @@ li.p-autocomplete-token{
 }
 
 
-
+.pi-times-circle::before{
+  content: "\e93d" !important;
+}
 
 .col-1-extension{
   width: 10.333% !important;
@@ -210,6 +213,14 @@ button.p-ripple.p-element.p-button-raised.p-button-secondary.p-button.p-componen
   max-width: 35% !important;
 }
 
+.p-carousel-content{
+  overflow: visible !important;
+}
+
+.p-carousel-items-content{
+  overflow: visible !important;
+}
+
 
 .p-badge.active{
   height: 1rem !important;
@@ -281,6 +292,10 @@ button markdown p{
 
 .p-chip markdown p{
   margin: 0px !important;
+}
+
+.col-3 > p-chip > div{
+  background-color: transparent  !important;
 }
 
 .buttonDisable{

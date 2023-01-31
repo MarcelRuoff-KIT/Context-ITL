@@ -98,6 +98,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   askForTrainingText = ""
   deniedReasoning = false
   public editMode = false;
+  revokedSpeech = true
 
 
 
@@ -111,11 +112,11 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   blockedAction = false
   pinnedSuggestion = false
   visualizationSelected = false
-  highlightedVisualization = {icon: 'pi pi-angle-left', state: 'old'}
+  highlightedVisualization = { icon: 'pi pi-angle-left', state: 'old' }
 
   highlightOption = [
-    {icon: 'pi pi-angle-left', state: 'old'},
-    {icon: 'pi pi-angle-right', state: 'new'}
+    { icon: 'pi pi-angle-left', state: 'old' },
+    { icon: 'pi pi-angle-right', state: 'new' }
   ]
 
 
@@ -321,6 +322,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       else if (event["data"]["name"] == "PerformNLI") {
         var configurationBefore = JSON.stringify(this.visCanvas.currentVisualizationState)
         this.training.lastVisualizationState = JSON.parse(JSON.stringify(this.visCanvas.currentVisualizationState))
+        this.revokedSpeech = false
         this.lastSpeechInteraction = {}
         this.speechInteraction = true
         if (event["data"]["value"].length > 0) {
@@ -595,7 +597,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         }
       }
     }
-    else if(this.overallMode == 2){
+    else if (this.overallMode == 2) {
       this.mouseOver = ''
     }
   }
@@ -697,12 +699,12 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
         if (axis[i]["ariaLabel"] != null) {
           var bounds = axis[i].getBoundingClientRect()
 
-          var element = document.getElementById("Canvas_Color")
+          var element = document.getElementById("ColorHighlight")
 
           element["style"]["display"] = "block"
           element["style"]["top"] = bounds.top.toString() + "px"
-          element["style"]["left"] = bounds.left.toString() + "px"
-          element["style"]["width"] = bounds.width.toString() + "px"
+          element["style"]["left"] = (bounds.left - 12).toString() + "px"
+          element["style"]["width"] = (bounds.width + 12).toString() + "px"
           element["style"]["height"] = bounds.height.toString() + "px"
         }
       }
@@ -738,8 +740,11 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     this.contextCh.constraints = []
     this.contextCh.constraintText = []
 
+
     await this.training.initializeTraining(this, possibleActions)
+
     await this.adaptVisualizationSize(0)
+
 
     this.stateHandling.resetStateHistory(this)
 
@@ -784,12 +789,12 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     this.positionDialog = "center"
     this.displayDialog = true
 
-    if(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) == JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])){
+    if (JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) == JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])) {
       this.contextCh.constraints = this.training.possibleActions[this.training.selectedAmbiguity]["Constraints"]
       this.contextCh.constraintText = this.training.possibleActions[this.training.selectedAmbiguity]["ConstraintsText"]
     }
 
-    
+
 
     this.contextCh.finalActions = this.training.possibleActions[this.training.selectedAmbiguity]
 
@@ -801,7 +806,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     await this.adaptVisualizationSize(1)
 
-    this.nlg.initializeUnderstandingDisplay(this, this.contextCh.finalActions["Action"], "reasoning")
+    this.nlg.initializeUnderstandingDisplay(this, this.contextCh.finalActions["Action"], "reasoning", this.training.selectedAmbiguity)
   }
 
   async endDemonstration(event, finished) {
@@ -818,7 +823,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
         if (this.overallMode == 1) {
           this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
-          this.nlg.initializeUnderstandingDisplay(this, {}, "reasoning")
+          this.nlg.initializeUnderstandingDisplay(this, {}, "reasoning", this.training.selectedAmbiguity)
         }
 
         this.overallMode = 2
@@ -855,7 +860,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
         this.visCanvas.possibleVisualizationStates = []
         this.training.possibleActions = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
-        this.nlg.initializeUnderstandingDisplay(this, {}, "training")
+        //this.nlg.initializeUnderstandingDisplay(this, {}, "training", this.training.selectedAmbiguity)
         this.contextCh.suggestions = []
         this.stateHandling.resetStateHistory(this)
         this.contextCh.ambiguitiesStart = []
@@ -937,7 +942,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
       this.visCanvas.possibleVisualizationStates = []
       this.training.possibleActions = [{ "Action": {}, "ID": 0, "Score": 0 }, { "Action": {}, "ID": 1, "Score": 1 }, { "Action": {}, "ID": 2, "Score": 2 }, { "Action": {}, "ID": 3, "Score": 3 }, { "Action": {}, "ID": 4, "Score": 4 }, { "Action": {}, "ID": 5, "Score": 5 }]
-      this.nlg.initializeUnderstandingDisplay(this, {}, "training")
+      //this.nlg.initializeUnderstandingDisplay(this, {}, "training")
       this.stateHandling.resetStateHistory(this)
       this.contextCh.ambiguitiesStart = []
       this.contextCh.ambiguitiesEnd = []
@@ -958,10 +963,9 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
     if (target == 0) {
       document.getElementById("displayAmbiguities")["style"]["display"] = "block"
-      document.getElementById("visGrid")["style"]["height"] = "50%"
+      document.getElementById("visGrid")["style"]["height"] = "40%"
       document.getElementById("nlClarification")["style"]["height"] = "10%"
-      document.getElementById("visCanvas")["className"] = "col-6 col-offset-1"
-      document.getElementById("actionSequenceMeta")["style"]["display"] = "block"
+      document.getElementById("visCanvas")["className"] = "col-12"
 
 
     }
@@ -971,7 +975,6 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById("visGrid")["style"]["height"] = "47%"
       document.getElementById("nlClarification")["style"]["height"] = "10%"
       document.getElementById("visCanvas")["className"] = "col-12"
-      document.getElementById("actionSequenceMeta")["style"]["display"] = "none"
     }
     else {
       document.getElementById("displayAmbiguities")["style"]["display"] = "none"
@@ -979,7 +982,6 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById("visGrid")["style"]["height"] = "80%"
       document.getElementById("nlClarification")["style"]["height"] = "15%"
       document.getElementById("visCanvas")["className"] = "col-12"
-      document.getElementById("actionSequenceMeta")["style"]["display"] = "none"
       document.getElementById('suggestion')["style"]["display"] = "none"
 
     }
@@ -1009,17 +1011,25 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   async changeAmbiguitySelect(event, ambiguity) {
     event.preventDefault();
 
-    this.training.selectedAmbiguity = ambiguity
+    if (ambiguity != this.training.selectedAmbiguity) {
+      this.training.possibleActions[this.training.selectedAmbiguity]['scriptSelect'] = false
 
-    this.visCanvas.possibleVisualizationStates[ambiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[ambiguity])
+      this.training.selectedAmbiguity = ambiguity
 
-    this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[ambiguity]
+      this.visCanvas.possibleVisualizationStates[ambiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[ambiguity])
 
-    this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[ambiguity]["Action"], "training")
+      this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[ambiguity]
 
-    this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+      //this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[ambiguity]["Action"], "training")
 
-    this.stateHandling.addAction(this, "Mouse")
+      this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+
+      for (var i = 0; i < this.training.possibleActions.length; i++) {
+        this.visCanvas.createVisualization(this, this.visCanvas.possibleVisualizationStates[i], "#Ambiguity_" + i, "small");
+      }
+
+      this.stateHandling.addAction(this, "Mouse")
+    }
   }
 
 
@@ -1059,26 +1069,37 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   async closeITLElement(event) {
+
+    event["target"]["className"] = "pi pi-spin pi-spinner"
+
     await this.training.removeAction(this, event.currentTarget.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.id.split("_"))
 
     this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity] = await this.training.changeAmbiguityInterpretation(this, this.training.possibleActions[this.training.selectedAmbiguity])
 
     this.visCanvas.currentVisualizationState = this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity]
 
-    await this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[this.training.selectedAmbiguity]["Action"], "training")
+    await this.nlg.initializeUnderstandingDisplay(this, this.training.possibleActions[this.training.selectedAmbiguity]["Action"], "training", this.training.selectedAmbiguity)
 
     await this.visCanvas.createVisualization(this, this.visCanvas.possibleVisualizationStates[this.training.selectedAmbiguity], "#Ambiguity_" + this.training.selectedAmbiguity, "small")
 
     await this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
   }
 
-  showHistory(event) {
-    this.overallMode += 1
-    if (this.overallMode > 2) {
-      this.overallMode = 0
+  handleLegendClick(event){
+    var target = event["target"]["id"].split("_")[1]
+    
+    if(!this.visCanvas.currentVisualizationState["ColorHighlight"].includes(target)){
+      this.infoVisInteraction.addLegendHighlight(this, this.visCanvas.currentVisualizationState, [target], true, null)
     }
-    this.adaptVisualizationSize(this.overallMode)
+    else{
+      this.infoVisInteraction.removeLegendHighlight(this, this.visCanvas.currentVisualizationState, [target], true, null)
 
+    }
+    this.stateHandling.addAction(this, "Mouse")
+    this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
+  }
+
+  showHistory(event) {
 
     if (event.checked) {
       var sheight = document.querySelectorAll("[class$=webchat__basic-transcript__scrollable]")[0].scrollHeight;
@@ -1101,25 +1122,25 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
    * INFOVIS Interaction via Mouse
    */
 
-   mouseTarget(target){
-    if (this.mouseOver == target && this.draggedDatafield != null){
-      
+  mouseTarget(target) {
+    if (this.mouseOver == target && this.draggedDatafield != null) {
+
       return true
     }
-    else{
+    else {
       return false
     }
-    
-   }
 
-   highlightEncoding(event) {
-    if(this.overallMode == 2 || this.overallMode == 0 ){
+  }
+
+  highlightEncoding(event) {
+    if (this.overallMode == 2 || this.overallMode == 0) {
       var allElements = <HTMLElement[]>document.elementsFromPoint(event.x, event.y)
-      var target = allElements.filter(element => { return element.id == 'x-Axis' || element.id == 'Values' || element.id == 'Color' || element.id == 'Filter_Adding'})
-      if(target.length > 0){
+      var target = allElements.filter(element => { return element.id == 'x-Axis' || element.id == 'Values' || element.id == 'Color' || element.id == 'Filter_Adding' })
+      if (target.length > 0) {
         this.mouseOver = target[0].id
       }
-      else{
+      else {
         this.mouseOver = ''
       }
     }
@@ -1190,7 +1211,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       await this.infoVisInteraction.removeFilters(this, this.visCanvas.currentVisualizationState, [event], true, null)
     }
     else if (target == "colorHighlight") {
-      await this.infoVisInteraction.removeLegendHighlight(this,  this.visCanvas.currentVisualizationState, ["ALL"], true, null)
+      await this.infoVisInteraction.removeLegendHighlight(this, this.visCanvas.currentVisualizationState, ["ALL"], true, null)
     }
     this.visCanvas.createVisualization(this, this.visCanvas.currentVisualizationState, "#vis", "large");
     this.stateHandling.addAction(this, "Mouse")
@@ -1364,7 +1385,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById('nlInputInter')['style']['zIndex'] = '1'
 
       document.getElementById('ambiguityCarousel')['style']['pointer-events'] = ''
-      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1'
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '5'
 
       document.getElementById('Datafields')['style']['zIndex'] = '1'
       document.getElementById('Datafields')['style']['pointer-events'] = ''
@@ -1381,8 +1402,6 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
       document.getElementById('botWin')['style']['zIndex'] = '1'
       document.getElementById('botWin')['style']['pointer-events'] = ''
 
-      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '1'
-      document.getElementById('actionSequenceMeta')['style']['pointer-events'] = ''
       this.displayDialog = false
     }
     else if (this.overallMode == 1 && this.contextCh.suggestions.length > 0 && target == "Show") {
@@ -1405,7 +1424,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
 
       document.getElementById("chatbotDialog").children[1]["style"]["font-weight"] = "bold"
-      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '1'
+      document.getElementById('ambiguityCarousel')['style']['zIndex'] = '5'
       document.getElementById('ambiguityCarousel')['style']['pointer-events'] = ''
 
       document.getElementById('Datafields')['style']['zIndex'] = '510'
@@ -1427,7 +1446,6 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
     }
     else if (this.highlightChildren == 2) {
       document.getElementById("chatbotDialog").children[1]["style"]["font-weight"] = "normal"
-      document.getElementById("chatbotDialog").children[2]["style"]["font-weight"] = "bold"
 
       document.getElementById('Datafields')['style']['zIndex'] = '1'
       document.getElementById('Datafields')['style']['pointer-events'] = ''
@@ -1443,9 +1461,6 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
       document.getElementById('botWin')['style']['zIndex'] = '1'
       document.getElementById('botWin')['style']['pointer-events'] = ''
-
-      document.getElementById('actionSequenceMeta')['style']['zIndex'] = '510'
-      document.getElementById('actionSequenceMeta')['style']['pointer-events'] = 'none'
     }
     this.highlightChildren += 1
   }
@@ -1461,7 +1476,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   async stateHandlingFunction(action) {
     if (action == "undo") {
-      if (this.overallMode == 2 && this.stateHandling.stateHistory[this.stateHandling.activeElement]["Origin"] == "Speech" && this.stateHandling.stateHistory[this.stateHandling.activeElement]["ID"] == this.stateHandling.speechID) {
+      if (this.overallMode == 2 && this.stateHandling.stateHistory[this.stateHandling.activeElement]["Origin"] == "Speech" && this.stateHandling.stateHistory[this.stateHandling.activeElement]["ID"] == this.stateHandling.speechID && !this.revokedSpeech) {
         this.askForTraining = true
 
         this.directLine
@@ -1489,6 +1504,7 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
   }
 
   askForTrainingAnswer(answer) {
+    this.revokedSpeech = true
     this.displayDialog = false
     this.askForTraining = false
     if (answer) {
@@ -1565,68 +1581,91 @@ export class MainViewComponent implements OnInit, AfterContentInit, AfterViewIni
 
   }
 
-  openDialogSuggestion(){
+  openDialogSuggestion() {
     this.contextCh.getAmbiguousActionsEnd(this, false)
     this.contextCh.getAmbiguousActionsStart(this, 'during', false)
     this.displaySuggestionHelp = true
 
   }
 
-  getConfidence(ambiguity, mode){
+  getConfidence(ambiguity, mode) {
     //console.log(JSON.parse(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action'])))
     //console.log(JSON.parse(JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])))
     var text = ''
     var score = ''
 
-    if(this.training.selectedAmbiguity == 0){
-      if(ambiguity["ID"] == this.training.selectedAmbiguity){
-        if(this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']){
+    if (this.training.selectedAmbiguity == 0) {
+      if (ambiguity["ID"] == this.training.selectedAmbiguity) {
+        if (this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']) {
           text = 'New Confidence: '
           score = Math.round(this.training.possibleActions[1]['ScoreFuture'] * 100) + '%'
         }
-        else{
+        else {
           text = 'New Confidence: '
           score = (100) + '%'
         }
-        
+
       }
-      else{
+      else {
         text = 'New Confidence: '
-          score = Math.round(ambiguity['ScoreFuture']* 100) + '%'
+        score = Math.round(ambiguity['ScoreFuture'] * 100) + '%'
       }
     }
-    else if(JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) === JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])){
-      text = 'Initial Confidence: ' 
-      score = Math.round(ambiguity['Score']* 100) + '%'
-    }
-    else{
-      if(ambiguity["ID"] == this.training.selectedAmbiguity){
-        if(this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']){
+    /*else if (JSON.stringify(this.training.initialActions[this.training.selectedAmbiguity]['Action']) === JSON.stringify(this.training.possibleActions[this.training.selectedAmbiguity]['Action'])) {
+      text = 'Initial Confidence: '
+      score = Math.round(ambiguity['Score'] * 100) + '%'
+    }*/
+    else {
+      if (ambiguity["ID"] == this.training.selectedAmbiguity) {
+        if (this.training.possibleActions.length > 1 && this.training.possibleActions[1]['newAmbiguity']) {
           text = 'New Confidence: '
           score = Math.round(this.training.possibleActions[1]['ScoreFuture'] * 100) + '%'
         }
-        else{
+        else {
           text = 'New Confidence: '
           score = (100) + '%'
         }
-        
+
       }
-      else{
+      else {
         text = 'New Confidence: '
-          score = Math.round(ambiguity['ScoreFuture']* 100) + '%'
+        score = Math.round(ambiguity['ScoreFuture'] * 100) + '%'
       }
     }
 
-    if(mode == 'badge'){
+    if (mode == 'badge') {
       return score
 
     }
-    else{
+    else {
       return text + score
 
     }
 
-    
+
   }
+
+  highlightContainer(event, mode) {
+    event["target"]["style"]["border-bottom"] = "3px solid black"
+    if (mode == "ALL") {
+      document.getElementById("ambiguityCarousel")["style"]["boxShadow"] = "6px 0px 10px 6px #666666"
+    }
+    else {
+      document.getElementById("createNew")["style"]["background"] = "#a7122a"
+    }
+  }
+
+  dehighlightContainer(event) {
+    event["target"]["style"]["border-bottom"] = ""
+
+    document.getElementById("ambiguityCarousel")["style"]["boxShadow"] = ""
+    document.getElementById("createNew")["style"]["background"] = ""
+
+  }
+
+  toggleScript(id) {
+    console.log(id)
+  }
+
 
 }

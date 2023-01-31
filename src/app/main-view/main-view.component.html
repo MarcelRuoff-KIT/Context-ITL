@@ -128,8 +128,7 @@
                                     Values ({{visCanvas.currentVisualizationState["Values"].length}}/2)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'values')" style="cursor:pointer">
-                                </fa-icon>
+                                <i class="pi pi-trash" (click)="unselect('ALL', 'values')" style="cursor:pointer; font-size: 14px;"></i>
                             </div>
                             <div class="col-12">
                                 <p-autoComplete [(ngModel)]="visCanvas.currentVisualizationState['Values']"
@@ -181,8 +180,8 @@
                                     x-Axis ({{visCanvas.currentVisualizationState["x-Axis"].length}}/1)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'xAxis')" style="cursor:pointer">
-                                </fa-icon>
+                                <i class="pi pi-trash" (click)="unselect('ALL', 'xAxis')" style="cursor:pointer; font-size: 14px;"></i>
+
 
                             </div>
                             <div class="col-12">
@@ -214,8 +213,8 @@
                                     Color ({{visCanvas.currentVisualizationState["Color"].length}}/1)</p>
                             </div>
                             <div class="col-1" style="display:flex; justify-content:flex-end; align-items:flex-end">
-                                <fa-icon [icon]="icon" (click)="unselect('ALL', 'color')" style="cursor:pointer">
-                                </fa-icon>
+                                <i class="pi pi-trash" (click)="unselect('ALL', 'color')" style="cursor:pointer; font-size: 14px;"></i>
+
                             </div>
                             <div class="col-12">
                                 <p-autoComplete [(ngModel)]="visCanvas.currentVisualizationState['Color']"
@@ -244,7 +243,7 @@
                         <p style="font-weight: bold; font-size: 14px;">Filters</p>
                     </div>
                     <div class="col-1" style="display:flex; justify-content:flex-end; align-items:center">
-                        <fa-icon [icon]="icon" (click)="unselect('ALL', 'filter')" style="cursor:pointer"></fa-icon>
+                        <i class="pi pi-trash" (click)="unselect('ALL', 'filter')" style="cursor:pointer; font-size: 14px;"></i>
                     </div>
                     <div id="Filter_Adding"
                         [ngClass]="mouseTarget('Filter_Adding') ? 'col-12 highlightEncoding' : 'col-12'"
@@ -367,10 +366,10 @@
                     how might I help you?
                 </div>
             </div>
-            <div id="displayAmbiguities" class="col-12" style="height: 40%; overflow:hidden; display: none;">
+            <div id="displayAmbiguities" class="col-12" style="height: 50%; display: none;">
                 <!--<p-steps [style]="{'margin-bottom': '3%'}" [model]="items" [(activeIndex)]="activeIndex"></p-steps>-->
 
-                <div class="grid grid-nogutter" style="height: 100%; align-content: space-around;">
+                <div class="grid grid-nogutter" style="height: 100%; align-content: space-between;">
                     <div class="col-10 col-offset-1" id="nlInputInter" style="position: relative">
                         <p-card [style]="{'padding-left':'10px', 'box-shadow': '3px 5px 10px -3px black'}">
                             <ng-template pTemplate="header">
@@ -400,36 +399,67 @@
                     </div>
                     <div class="col-9 col-offset-1" *ngIf="training.possibleActions.length <= 1"
                         style="position: relative; background-color: white; font-weight: bold;">
-                        Please demonstrate the meaning by adapting the panels on the left, the visualization or by entering natural language inputs above.
+                        Please demonstrate the meaning by adapting the panels on the left, the visualization or by
+                        entering natural language inputs above.
                     </div>
 
-                    <div class="col-11" id="ambiguityCarousel" style="position: relative; background-color: white;">
+                    <div class="col-11 transition" id="ambiguityCarousel"
+                        style="position: relative; background-color: white; z-index: 3">
                         <p-carousel *ngIf="overallMode == 0" [value]="training.possibleActions" [numVisible]="3"
                             [showIndicators]="false" [numScroll]="1" [style]="{'height':'fit-content'}">
                             <ng-template let-ambiguity pTemplate="item">
                                 <div [ngClass]="ambiguity['ID'] == training.selectedAmbiguity ? 'grid grid-nogutter activeAmbiguity' : 'grid grid-nogutter passiveAmbiguity'"
                                     (click)="changeAmbiguitySelect($event, ambiguity['ID'])"
-                                    style="width: 90%; height: 100px; cursor: pointer; display: flex; justify-content:center; margin: 4px auto 10px; overflow:hidden">
-                                    <div class="col-9" style="height: 15px"
-                                        *ngIf="ambiguity['ID'] == 0 && (training.checkSize(ambiguity['Action']) || training.selectedAmbiguity == 0) > 0">
-                                        Your new
-                                        Interpretation</div>
-                                    <div class="col-9" style="height: 15px"
-                                        *ngIf="ambiguity['ID'] == 0 && training.checkSize(ambiguity['Action']) == 0  && training.selectedAmbiguity != 0">
-                                        Create new Interpretation</div>
-                                    <div class="col-9" style="height: 15px" *ngIf="ambiguity['ID'] != 0">ContexIT's
-                                        Interpretation
-                                        #{{ambiguity['ID']}} </div>
-                                    <div style="display: flex; justify-content: flex-end" pTooltip="Confidence of ContexIT for selecting this Interpretation for your Natural Language Input" tooltipPosition="top" class="col-3"><p-chip>{{getConfidence(ambiguity, 'badge')}}</p-chip></div>
-                                    
-                                    <div class="col-12" style="pointer-events: none; height: calc(100% - 15px);"
-                                        [ngStyle]="{'display': ambiguity['ID'] == 0 && training.checkSize(ambiguity['Action']) == 0 && training.selectedAmbiguity != 0 ? 'flex' : 'none'}">
-                                        <img src="../../assets/images/plus.png"
-                                            style="height: 50%; justify-content: center; margin: auto" />
+                                    style="cursor: pointer; display: flex; justify-content:center;">
+                                    <div class="col-12" style="height: 20px;">
+                                        <div class="grid grid-nogutter" style="height: 80%; width: 100%">
+                                            <div class="col-9"
+                                                *ngIf="ambiguity['ID'] == 0 && (training.checkSize(ambiguity['Action']) > 0 || training.selectedAmbiguity == 0)">
+                                                Your new
+                                                Interpretation</div>
+                                            <div class="col-9"
+                                                *ngIf="ambiguity['ID'] == 0 && training.checkSize(ambiguity['Action']) == 0  && training.selectedAmbiguity != 0">
+                                                Create new Interpretation</div>
+                                            <div class="col-9" *ngIf="ambiguity['ID'] != 0">
+                                                ContexIT's
+                                                Interpretation
+                                                #{{ambiguity['ID']}} </div>
+                                            <div style="display: flex; justify-content: flex-end" 
+                                                pTooltip="Confidence of ContexIT for selecting this Interpretation for your Natural Language Input after Training"
+                                                tooltipPosition="top" class="col-3">
+                                                <p-chip [style]="{'background-color': ''}" [ngStyle]="{'border-radius': '16px', 'background-color': ambiguity['ID'] == training.selectedAmbiguity ? ' #a6192e52': '#dee2e6'}">{{getConfidence(ambiguity, 'badge')}}</p-chip>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col-12" id="{{'Ambiguity_'+ ambiguity['ID']}}"
-                                        style="pointer-events: none; height: calc(100% - 15px);">
+                                    <div class="col-12"
+                                        style="height: calc(100% - 40px); width:100%; overflow: hidden;">
+                                        <div class="grid grid-nogutter" style="height: 100%; width: 100%">
+                                            <div id="createNew" class="col-12 transition" style="pointer-events: none; height: 100%"
+                                                [ngStyle]="{'display': ambiguity['ID'] == 0 && training.checkSize(ambiguity['Action']) == 0 && training.selectedAmbiguity != 0 ? 'flex' : 'none'}">
+                                                <img src="../../assets/images/plus.png"
+                                                    style="height: 50%; justify-content: center; margin: auto" />
+                                            </div>
+                                            <div class="col-12" id="{{'Ambiguity_'+ ambiguity['ID']}}"
+                                                style="pointer-events: none; height: 100%; display: flex;justify-content: center;">
+                                            </div>
+                                        </div>
                                     </div>
+                                    <div class="col-12" style="height:20px">
+                                        <p-accordion>
+                                            <p-accordionTab [(selected)]="ambiguity['scriptSelect']">
+                                                <ng-template pTemplate="header">
+                                                    <div class="grid grid-nogutter" style="width:100%" (click) = "toggleScript(ambiguity['ID'])">
+                                                        <div class="col-10" style="font-size: 11px !important">Script for Interpretation</div> <div class="col-2" style="display:flex; justify-content:flex-end"></div>
+                                                    </div>
+                                                </ng-template>
+                                                <app-script-vis #scriptVis class="col-12" style="height: 100%; width: 100%" [id]="ambiguity['ID']" [that]="this"></app-script-vis>
+                                                    
+                                            </p-accordionTab>
+                                        </p-accordion>
+
+                                    </div>
+
+
 
                                 </div>
 
@@ -451,6 +481,16 @@
                             class="p-button-raised p-button-danger" (click)="endDemonstration($event, false)"
                             style="margin-top: 5px !important; float: right"
                             pTooltip="ContexIT will not learn anything if you Quit the Training"></button>
+                    </div>
+
+                    <div class="col-10 col-offset-1"
+                        style="position: relative; background-color: white; font-size: 12px; margin-bottom: 10px;">
+                        <div *ngIf="training.possibleActions.length > 1 && training.selectedAmbiguity != 0 && training.checkSize(training.possibleActions[0]['Action']) == 0" style="width: 100%; text-align: center;  ">
+                            If none of them fit, you can either <b (mouseover)="highlightContainer($event, 'ALL')" (mouseleave)="dehighlightContainer($event)">adapt the displayed interpretation(s)</b> or <b (mouseover)="highlightContainer($event, 'Start')" (mouseleave)="dehighlightContainer($event)">create a new interpretation</b>.
+                        </div>
+                        <div *ngIf="training.possibleActions.length > 1 && (training.selectedAmbiguity == 0 || training.checkSize(training.possibleActions[0]['Action']) > 0)" style="width: 100%; text-align: center;">
+                            If none of them fit, you can <b (mouseover)="highlightContainer($event, 'ALL')" (mouseleave)="dehighlightContainer($event)">adapt the displayed interpretation(s)</b>.
+                        </div>
                     </div>
                 </div>
 
@@ -483,10 +523,10 @@
                     </div>
 
                     <div class="col-2" style="width: 12%; margin: 0px 2.333%;">
-                        <div *ngIf="contextCh.numberOfAmbiguities > 0"
+                        <div *ngIf="contextCh.numberOfAmbiguities > 0" id="ContrInterpretations"
                             style="
                             display: flex; flex-wrap: wrap; justify-content: center; 
-                            border: 1px solid #9333ea; border-radius: 25px; box-shadow: 3px 4px 1px -1px rgb(147 51 234) !important;">
+                            border: 1px solid #9333ea; border-radius: 25px; box-shadow: 3px 4px 1px -1px rgb(147 51 234) !important;" class="transition">
                             <p style="text-align: center;">Address <br> {{contextCh.numberOfAmbiguities}} contradicting
                                 <br> interpretation(s)
                             </p>
@@ -500,11 +540,13 @@
 
                     <div class="col-9" style="position: relative; background-color: white; height: calc(55% + 25px);">
                         <div class="grid grid-nogutter" style="height:100%">
-                            <div id="constraintsHighlight" class="col-12" style="height: calc(100% - 35px); margin-bottom: 10px; border-radius: 8px;">
+                            <div id="constraintsHighlight" class="col-12"
+                                style="height: calc(100% - 35px); margin-bottom: 10px; border-radius: 8px;">
                                 <p-card
                                     [style]="{'padding-left':'10px', 'background-color': '#d2d2d2', 'height': '100%'}">
                                     <ng-template pTemplate="header">
-                                        <div [style]="{'font-weight': '700'}">And the following Statements apply to the State of the Data Visualization Tool:</div>
+                                        <div [style]="{'font-weight': '700'}">And the following Statements apply to the
+                                            State of the Data Visualization Tool:</div>
                                     </ng-template>
                                     <ng-template pTemplate="content" style="height:85%; overflow-y: scroll;">
                                         <ng-template ngFor let-constraint [ngForOf]="contextCh.constraintText"
@@ -557,16 +599,11 @@
             </div>
             <div class="col-12" id="visGrid" style="position:relative; height: 80%; overflow: hidden;">
                 <div class="grid grid-nogutter" style="position:relative; height: 100%; overflow: hidden; ">
+                    <!--
                     <div class="col-5" id="actionSequenceMeta"
                         style="height:100%; position:relative; display: none; box-shadow: -5px 9px 9px -4px;border-radius: 0px 0px 0px 10px; background-color: white;">
                         <div class="grid grid-nogutter" style="height: 100%">
-                            <div class="col-10 col-offset-1" 
-                                style="position: relative; background-color: white; font-size: 12px; margin-bottom: 10px; height: 32px">
-                                <div *ngIf="training.possibleActions.length > 1" style="width: 100%; text-align: center;  ">
-                                If none of them fit, you can either adapt the <b>representation of the learned
-                                    script</b> or <b>create a new interpretation</b>.
-                                </div>
-                            </div>
+
                             <div class="col-12" style="height: calc(100% - 42px)">
                                 <div class="smallToolbar" style="border-radius: 10px 10px 0px 0px;">
                                     <p *ngIf="training.selectedAmbiguity == 0">Representation of the Learned Script of
@@ -575,9 +612,9 @@
                                     <p *ngIf="training.selectedAmbiguity != 0">Representation of the Learned Script for
                                         Interpretation #{{training.selectedAmbiguity}}</p>
                                     <div>
-                                        <!--<p-toggleButton class="solidButton" iconPos="right" [onIcon]="'pi pi-save'"
+                                        <p-toggleButton class="solidButton" iconPos="right" [onIcon]="'pi pi-save'"
                                     offIcon="pi pi-pencil" [(ngModel)]="editMode" (onChange)="changeEditMode($event)">
-                                </p-toggleButton>-->
+                                </p-toggleButton>
 
                                         <i class="pi pi-exclamation-circle" style="margin-right: 15px;"
                                             pTooltip="Add Actions by Demonstrating them in the Visualization, the Panels on the Left or through Natural Language Input."
@@ -596,14 +633,14 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-12" id="visCanvas">
+                    </div>-->
+                    <div class="col-12" id="visCanvas" style="height:100%">
                         <div class="grid grid-nogutter" style="height:100%">
                             <div *ngIf="overallMode == 2" class="col-12 toolbarBase">
                                 Current Visualization
                             </div>
                             <div *ngIf="overallMode == 0" class="col-12 toolbarDemo">
-                                Visualization based on Learned Script
+                                Visualization based on Current Interpretation
                             </div>
                             <div *ngIf="overallMode == 1"
                                 [ngClass]="highlightedVisualization['state'] == 'old' ? 'col-5 toolbarPrev': 'col-5 toolbarBase'"
@@ -637,10 +674,12 @@
     </div>
 </div>
 
-<div *ngIf="displayDialog" id="blockerUI" style="background-color: rgba(128, 128, 128, 0.479); z-index: 500; position: absolute; top:0; left: 0; width: 100%; height: 100%;" (click)="handleHideDialog($event, 'Not')"></div>
+<div *ngIf="displayDialog" id="blockerUI"
+    style="background-color: rgba(128, 128, 128, 0.479); z-index: 500; position: absolute; top:0; left: 0; width: 100%; height: 100%;"
+    (click)="handleHideDialog($event, 'Not')"></div>
 <!-- Dialog Containers -->
 
-<p-dialog id="generalDialog" [(visible)]="displayDialog" [position]="positionDialog" 
+<p-dialog id="generalDialog" [(visible)]="displayDialog" [position]="positionDialog"
     (onHide)="handleHideDialog($event, 'Not')"
     [style]="{'width': '50vw', 'height': 'fit-content', 'box-shadow':'#a6192e 10px 10px 15px 0px', 'border':'2px solid black', 'z-index': '1200 !important'}">
 
@@ -671,19 +710,23 @@
 
     </div>
     <ng-template pTemplate="footer" id="footer">
-        <p-button *ngIf="dialogWaitforNext && highlightChildren == 0 && overallMode == 0 && firstBreakdown"
-            icon="pi pi-check" (click)="handleHideDialog($event, 'Show')" label="Show How" styleClass="p-button-text"
+        
+        <p-button *ngIf="!askForTraining"
+            icon="pi pi-check" (click)="handleHideDialog($event, 'Not')" label="Okay" styleClass="p-button-text"
             [style]="{'width': 'fit-content !important'}"></p-button>
-        <p-button *ngIf="firstBreakdown && highlightChildren > 0 && highlightChildren < 3 " icon="pi pi-check"
+        <p-button *ngIf="firstBreakdown && highlightChildren > 0 && highlightChildren < 2 " icon="pi pi-angle-right"
             (click)="showHowTraining($event)" label="Next" styleClass="p-button-text"
             [style]="{'width': 'fit-content !important'}"></p-button>
-        <p-button *ngIf="overallMode == 1 && contextCh.suggestions.length > 0" icon="pi pi-check"
-            (click)="contextCh.getAmbiguousActionsStart(this, 'start', true)" label="Help me specify statements!" styleClass="p-button-text"
+        <p-button *ngIf="overallMode == 1 && contextCh.suggestions.length > 0" icon="pi pi-question"
+            (click)="contextCh.getAmbiguousActionsStart(this, 'start', true)" label="Get suggestions for statements!"
+            styleClass="p-button-text" [style]="{'width': 'fit-content !important'}"></p-button>
+        <p-button *ngIf="dialogWaitforNext && highlightChildren == 0 && overallMode == 0 && firstBreakdown"
+            icon="pi pi-question" (click)="handleHideDialog($event, 'Show')" label="Show How" styleClass="p-button-text"
             [style]="{'width': 'fit-content !important'}"></p-button>
         <p-button *ngIf="askForTraining" icon="pi pi-times" (click)="askForTrainingAnswer(false)"
             label="No, everything worked great" styleClass="p-button-text"
             [style]="{'width': 'fit-content !important'}"></p-button>
-        <p-button *ngIf="askForTraining" icon="pi pi-check" (click)="askForTrainingAnswer(true)" label="Yes, I can help"
+        <p-button *ngIf="askForTraining" icon="pi pi-check" (click)="askForTrainingAnswer(true)" label="Yes, I can teach you"
             styleClass="p-button-text" [style]="{'width': 'fit-content !important'}"></p-button>
     </ng-template>
 </p-dialog>
@@ -693,7 +736,8 @@
     (onShow)="showConnection()" (onHide)="declineSuggestion($event, 'dialog')" (onDragEnd)="showConnection()">
     <ng-template pTemplate="header" id="headerSug">
         <div class="grid grid-nogutter">
-            <div class="col-12">Please select the statements regarding the <b>previous state of the data visualization tool</b> that are important for selecting your previously demonstrated interpretation.
+            <div class="col-12">Please select the statements regarding the <b>state of the data visualization
+                    tool before performing the Natural Language Input</b> that are important for selecting your previously demonstrated interpretation.
             </div>
         </div>
     </ng-template>
@@ -710,28 +754,34 @@
                         <p-accordionTab *ngIf="contextCh.useAccordion(typeOfConstraints) > 0"
                             [header]="contextCh.getTitle(typeOfConstraints)" [selected]="true">
                             <ng-template ngFor let-possibleConstraint
-                                [ngForOf]="contextCh.getElementsOfType(typeOfConstraints)"  let-i="index">
-                                <button pButton pRipple type="button" *ngIf="contextCh.getIndex(this, possibleConstraint['Text'])"
+                                [ngForOf]="contextCh.getElementsOfType(typeOfConstraints)" let-i="index">
+                                <button pButton pRipple type="button"
+                                    *ngIf="contextCh.getIndex(this, possibleConstraint['Text'])"
                                     (click)="contextCh.addConstraint(this, possibleConstraint, $event, contextCh.getIndex(this, possibleConstraint['Text']))"
                                     class="p-button-raised col-11 col-offset-1"
                                     [style]="{'margin-bottom': '5px !important'}">
                                     <div class="grid grid-nogutter" style="width:100%">
                                         <input style="pointer-events: none;" type="checkbox" checked>
 
-                                        <div class="col-11"><markdown [data]="possibleConstraint['Text']">
-                                        </markdown></div>
+                                        <div class="col-11">
+                                            <markdown [data]="possibleConstraint['Text']">
+                                            </markdown>
+                                        </div>
                                     </div>
                                 </button>
 
-                                <button pButton pRipple type="button" *ngIf="!contextCh.getIndex(this, possibleConstraint['Text'])" 
+                                <button pButton pRipple type="button"
+                                    *ngIf="!contextCh.getIndex(this, possibleConstraint['Text'])"
                                     (click)="contextCh.addConstraint(this, possibleConstraint, $event, contextCh.getIndex(this, possibleConstraint['Text']))"
                                     class="p-button-raised col-11 col-offset-1"
                                     [style]="{'margin-bottom': '5px !important', 'background-color': '#dee2e6', 'color': 'black'}">
                                     <div class="grid grid-nogutter" style="width:100%">
-                                        <input style="pointer-events: none;"type="checkbox">
+                                        <input style="pointer-events: none;" type="checkbox">
 
-                                        <div class="col-11"><markdown [data]="possibleConstraint['Text']">
-                                        </markdown></div>
+                                        <div class="col-11">
+                                            <markdown [data]="possibleConstraint['Text']">
+                                            </markdown>
+                                        </div>
                                     </div>
                                 </button>
 
@@ -757,7 +807,7 @@
                     [style]="{'width': 'fit-content !important'}"></p-button>
             </div>
             <div class="col-6">
-                <p style="margin: 6px 0px; font-weight: bold; text-align:center">Suggestions based on your Script</p>
+                <p style="margin: 6px 0px; font-weight: bold; text-align:center">Suggestions</p>
             </div>
             <div class="col-2">
                 <p-button *ngIf="contextCh.suggestionsNext" icon="pi pi-angle-right" iconPos="right"
@@ -767,7 +817,7 @@
         </div>
 
         <p-button *ngIf="!displaySuggestion && contextCh.suggestions.length > 0" icon="pi pi-search"
-            (click)="showSuggestions('current')" label="Get a Suggestion" styleClass="p-button-text"
+            (click)="contextCh.getAmbiguousActionsStart(this, 'during', true)" label="Get a Suggestion" styleClass="p-button-text"
             [style]="{'width': 'fit-content !important'}"></p-button>
     </ng-template>
 </p-dialog>
@@ -777,7 +827,8 @@
     (onShow)="showConnection()" (onHide)="declineSuggestion($event, 'dialog')" (onDragEnd)="showConnection()">
     <ng-template pTemplate="header" id="headerSug">
         <div class="grid grid-nogutter">
-            <div class="col-12">Please select the statements regarding the <b>previous state of the data visualization tool</b> that are important for selecting your previously demonstrated interpretation.
+            <div class="col-12">Please select the statements regarding the <b>state of the data visualization
+                    tool before performing the Natural Language Input</b> that are important for selecting your previously demonstrated interpretation.
             </div>
         </div>
     </ng-template>
@@ -795,27 +846,33 @@
                         <p-accordionTab *ngIf="contextCh.useAccordionStart(typeOfConstraints) > 0"
                             [header]="contextCh.getTitleStart(typeOfConstraints)" [selected]="true">
                             <ng-template ngFor let-possibleConstraint
-                                [ngForOf]="contextCh.getElementsOfTypeStart(typeOfConstraints)"  let-i="index">
-                                <button pButton pRipple type="button" *ngIf="contextCh.getIndexStart(this, possibleConstraint['Text'])"
+                                [ngForOf]="contextCh.getElementsOfTypeStart(typeOfConstraints)" let-i="index">
+                                <button pButton pRipple type="button"
+                                    *ngIf="contextCh.getIndexStart(this, possibleConstraint['Text'])"
                                     (click)="contextCh.addConstraintStart(this, possibleConstraint, $event)"
                                     class="p-button-raised col-10 col-offset-1"
                                     [style]="{'margin-bottom': '5px !important'}">
-                                    <div class="grid grid-nogutter" style="width:100%" >
+                                    <div class="grid grid-nogutter" style="width:100%">
                                         <input style="pointer-events: none;" type="checkbox" checked>
 
-                                        <div class="col-11"><markdown [data]="possibleConstraint['Text']">
-                                        </markdown></div>
+                                        <div class="col-11">
+                                            <markdown [data]="possibleConstraint['Text']">
+                                            </markdown>
+                                        </div>
                                     </div>
                                 </button>
-                                <button pButton pRipple type="button" *ngIf="!contextCh.getIndexStart(this, possibleConstraint['Text'])"
+                                <button pButton pRipple type="button"
+                                    *ngIf="!contextCh.getIndexStart(this, possibleConstraint['Text'])"
                                     (click)="contextCh.addConstraintStart(this, possibleConstraint, $event)"
                                     class="p-button-raised col-10 col-offset-1"
                                     [style]="{'margin-bottom': '5px !important', 'background-color': '#dee2e6', 'color': 'black'}">
                                     <div class="grid grid-nogutter" style="width:100%">
                                         <input style="pointer-events: none;" type="checkbox">
 
-                                        <div class="col-11"><markdown [data]="possibleConstraint['Text']">
-                                        </markdown></div>
+                                        <div class="col-11">
+                                            <markdown [data]="possibleConstraint['Text']">
+                                            </markdown>
+                                        </div>
                                     </div>
                                 </button>
 
@@ -829,19 +886,24 @@
 
     </div>
     <ng-template pTemplate="footer" id=footer>
-        <div class="grid grid-nogutter" *ngIf="contextCh.ambiguousConditions.length > 1">
-            <div class="col-2 col-offset-1">
+        <div class="grid grid-nogutter">
+            <div class="col-2 col-offset-1" *ngIf="contextCh.ambiguousConditions.length > 1">
                 <p-button *ngIf="contextCh.ambiguityStartPrevious" icon="pi pi-angle-left"
                     (click)="contextCh.showAmbiguityStart(this, 'previous')" label="Previous" styleClass="p-button-text"
                     [style]="{'width': 'fit-content !important'}"></p-button>
             </div>
-            <div class="col-6">
-                <p style="margin: 6px 0px; font-weight: bold; text-align:center">Suggestions based on Existing Scripts
+            <div class="col-6" *ngIf="contextCh.ambiguousConditions.length > 1">
+                <p style="margin: 6px 0px; font-weight: bold; text-align:center">Suggestions
                 </p>
             </div>
-            <div class="col-2">
+            <div class="col-2" *ngIf="contextCh.ambiguousConditions.length > 1">
                 <p-button *ngIf="contextCh.ambiguityStartNext" icon="pi pi-angle-right" iconPos="right"
                     (click)="contextCh.showAmbiguityStart(this, 'next')" label="Next" styleClass="p-button-text"
+                    [style]="{'width': 'fit-content !important'}"></p-button>
+            </div>
+            <div class="col-2 col-offset-10">
+                <p-button
+                    icon="pi pi-check" (click)="displayAmbiguityDialogStart = false" label="Okay" styleClass="p-button-text"
                     [style]="{'width': 'fit-content !important'}"></p-button>
             </div>
         </div>
@@ -869,34 +931,36 @@
         </div>
 
         <div class="col-11">
-            <div class="grid grid-nogutter"
-                style="position:relative; height: 100%; overflow: hidden; ">
+            <div class="grid grid-nogutter" style="position:relative; height: 100%; overflow: hidden; ">
                 <div class="col-7" style="margin-top: 10px;">
                     <div><b>For the Natural Language Input...</b></div>
                 </div>
                 <div class="col-7 col-offset-1" style="padding: 5px;">
-                        <ng-template ngFor let-partialNL [ngForOf]="training.nlInput" let-i="index">
-                            <span *ngIf="i > 0 && !partialNL['Text'].startsWith(',') && !partialNL['Text'].startsWith('.')">{{"
-                                "}}</span>
-                            <span *ngIf="partialNL['Type'] == 'VERB'" style="font-weight: 625">{{partialNL["Text"]}}</span>
-                            <span *ngIf="partialNL['Type'] == 'None'"
-                                style="color: rgb(167, 167, 167)">{{partialNL["Text"]}}</span>
-                            <span *ngIf="partialNL['Type'] != 'None' && partialNL['Type'] != 'VERB'"
-                                style="border-bottom: 1px solid #a6192e"
-                                pTooltip="{{'I\'ve recognized this word as a ' + processTooltip(partialNL['Type'])}}"
-                                tooltipPosition="bottom">{{partialNL["Text"].toLowerCase()}}</span>
-                        </ng-template>
+                    <ng-template ngFor let-partialNL [ngForOf]="training.nlInput" let-i="index">
+                        <span
+                            *ngIf="i > 0 && !partialNL['Text'].startsWith(',') && !partialNL['Text'].startsWith('.')">{{"
+                            "}}</span>
+                        <span *ngIf="partialNL['Type'] == 'VERB'" style="font-weight: 625">{{partialNL["Text"]}}</span>
+                        <span *ngIf="partialNL['Type'] == 'None'"
+                            style="color: rgb(167, 167, 167)">{{partialNL["Text"]}}</span>
+                        <span *ngIf="partialNL['Type'] != 'None' && partialNL['Type'] != 'VERB'"
+                            style="border-bottom: 1px solid #a6192e"
+                            pTooltip="{{'I\'ve recognized this word as a ' + processTooltip(partialNL['Type'])}}"
+                            tooltipPosition="bottom">{{partialNL["Text"].toLowerCase()}}</span>
+                    </ng-template>
                 </div>
                 <div class="col-12" style="margin-bottom: 10px;">
-                    <div><b>... please select the statement(s) that help me decide when to choose your demonstrated script and not the existing script.</b>
+                    <div><b>... please select the statement(s) that help me decide when to choose your demonstrated
+                            script and not the existing script.</b>
                     </div>
                 </div>
-        
+
                 <div class="col-11">
                     <p-card [style]="{'padding-left':'10px', 'background-color': '#d2d2d2', 'height': '100%'}">
                         <ng-template pTemplate="content" style="height:85%; overflow-y: scroll;">
-                            <ng-template *ngIf="contextCh.ambiguitiesEnd.length > contextCh.ambiguityIndex" ngFor let-constraint
-                                [ngForOf]="contextCh.ambiguitiesEnd[contextCh.ambiguityIndex]['Text']" let-i="index">
+                            <ng-template *ngIf="contextCh.ambiguitiesEnd.length > contextCh.ambiguityIndex" ngFor
+                                let-constraint [ngForOf]="contextCh.ambiguitiesEnd[contextCh.ambiguityIndex]['Text']"
+                                let-i="index">
                                 <p-chip
                                     *ngIf="!contextCh.ambiguitiesEnd[contextCh.ambiguityIndex]['FocusConstraints'].includes(i)"
                                     (click)="contextCh.ambiguitiesEnd[contextCh.ambiguityIndex]['FocusConstraints'].push(i)"
@@ -952,18 +1016,23 @@
 
     </div>
     <ng-template pTemplate="footer" id=footer>
-        <div class="grid grid-nogutter" *ngIf="contextCh.ambiguitiesEnd.length > 1">
-            <div class="col-2 col-offset-1">
+        <div class="grid grid-nogutter">
+            <div class="col-2 col-offset-1" *ngIf="contextCh.ambiguitiesEnd.length > 1">
                 <p-button *ngIf="contextCh.ambiguityPrevious" icon="pi pi-angle-left"
                     (click)="contextCh.showAmbiguity(this, 'previous')" label="Previous" styleClass="p-button-text"
                     [style]="{'width': 'fit-content !important'}"></p-button>
             </div>
-            <div class="col-6">
+            <div class="col-6" *ngIf="contextCh.ambiguitiesEnd.length > 1">
                 <p style="margin: 6px 0px; font-weight: bold; text-align:center">Ambiguous Existing Interpretations</p>
             </div>
-            <div class="col-2">
+            <div class="col-2" *ngIf="contextCh.ambiguitiesEnd.length > 1">
                 <p-button *ngIf="contextCh.ambiguityNext" icon="pi pi-angle-right" iconPos="right"
                     (click)="contextCh.showAmbiguity(this, 'next')" label="Next" styleClass="p-button-text"
+                    [style]="{'width': 'fit-content !important'}"></p-button>
+            </div>
+            <div class="col-2 col-offset-10">
+                <p-button
+                    icon="pi pi-check" (click)="displayAmbiguityDialogEnd = false" label="Okay" styleClass="p-button-text"
                     [style]="{'width': 'fit-content !important'}"></p-button>
             </div>
         </div>
@@ -992,20 +1061,13 @@
                 </ng-template>
                 <ng-template pTemplate="content" style="height:85%; overflow-y: scroll;">
                     <div class="grid grid-nogutter">
-                        <div class="col-12">I can help you by providing suggestions for possible statements based on...
+                        <div class="col-12">I can help you by providing suggestions for possible statements.
                         </div>
                         <div class="col-10 col-offset-2" style="margin-top: 5px;">
                             <button *ngIf="contextCh.suggestions.length > 0" pButton pRipple type="button"
-                                label="...your demonstrated Script" class="p-button-raised"
-                                (click)="showSuggestions('current')" [style]="{'float': 'left'}"></button>
+                                label="Get Suggestions" class="p-button-raised"
+                                (click)="contextCh.getAmbiguousActionsStart(this, 'during', true)" [style]="{'float': 'left'}"></button>
                         </div>
-                        <div class="col-10 col-offset-2" style="margin-top: 5px;">
-                            <button *ngIf="contextCh.ambiguousConditions.length > 0" pButton pRipple type="button"
-                                label="...other existing Scripts" class="p-button-raised"
-                                (click)="contextCh.getAmbiguousActionsStart(this, 'during', true)"
-                                [style]="{'float': 'left'}"></button>
-                        </div>
-
                     </div>
                 </ng-template>
             </p-card>
@@ -1059,23 +1121,31 @@
 
 
 <!-- Click Container-->
-<div id="Canvas_Axis-0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1;"
-    (click)="handleChange($event, 0 )" [ngStyle]="{'background-color': visCanvas.currentVisualizationState['Values'].length == 2 && visCanvas.currentVisualizationState['Values'][1] == visCanvas.currentVisualizationState['Highlight'] ? 'rgba(255, 255, 255, .6)' : ''}"></div>
-<div id="Canvas_Axis-1" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1;"
-    (click)="handleChange($event, 1 )" [ngStyle]="{'background-color': visCanvas.currentVisualizationState['Values'].length == 2 && visCanvas.currentVisualizationState['Values'][0] == visCanvas.currentVisualizationState['Highlight'] ? 'rgba(255, 255, 255, .6)' : ''}"></div>
-
-<div id="Canvas_x-Axis" *ngIf="visCanvas.currentVisualizationState['x-Axis'].length > 0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1;">
+<div id="Canvas_Axis-0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 2;"
+    (click)="handleChange($event, 0 )"
+    [ngStyle]="{'background-color': visCanvas.currentVisualizationState['Values'].length == 2 && visCanvas.currentVisualizationState['Values'][1] == visCanvas.currentVisualizationState['Highlight'] ? 'rgba(255, 255, 255, .6)' : ''}">
+</div>
+<div id="Canvas_Axis-1" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 2;"
+    (click)="handleChange($event, 1 )"
+    [ngStyle]="{'background-color': visCanvas.currentVisualizationState['Values'].length == 2 && visCanvas.currentVisualizationState['Values'][0] == visCanvas.currentVisualizationState['Highlight'] ? 'rgba(255, 255, 255, .6)' : ''}">
 </div>
 
-<div id="Canvas_Color"  class="grid grid-nogutter" *ngIf="visCanvas.currentVisualizationState['Color'].length > 0" style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 1; pointer-events: none;">
-    <div class="col-1 col-offset-11" style="display:flex; justify-content:flex-end; align-items:flex-end; height: 12px; pointer-events: all; cursor: pointer">
-        <fa-icon [icon]="icon" (click)="unselect('ALL', 'colorHighlight')" style="cursor:pointer">
-        </fa-icon>
+<div id="Canvas_x-Axis" *ngIf="visCanvas.currentVisualizationState['x-Axis'].length > 0"
+    style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 2;">
+</div>
+
+<div id="ColorHighlight" class="grid grid-nogutter" *ngIf="visCanvas.currentVisualizationState['Color'].length > 0"
+    style="position: absolute;width: 0px;height: 0px;top: 0px;left: 0px; z-index: 2; pointer-events: none;">
+    <div class="col-1"
+        style="display:flex; justify-content:flex-end; align-items:flex-end; height: 12px; pointer-events: all; cursor: pointer">
+        <i class="pi pi-trash" (click)="unselect('ALL', 'colorHighlight')" style="cursor:pointer; font-size: 12px;"></i>
+
     </div>
+    <div class="col-11"></div>
     <div class="col-12" style="height:calc(100% - 12px); pointer-events: none"></div>
 </div>
 
-<div id="ColorHighlightTemplate" style="display: none; position: absolute" class="colorHighlightElement"></div>
+<div id="ColorHighlightTemplate" style="display: none; cursor:pointer; position: absolute; align-items: center; z-index: 2;" class="colorHighlightElement"> <i class="pi pi-star" style="pointer-events: none; font-size: 10px;"></i> <i class="pi pi-star-fill" style="pointer-events: none;  font-size: 10px;"></i></div>
 
 
 <!-- Template for Current Understanding -->
@@ -1084,10 +1154,10 @@
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
 
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -1100,10 +1170,8 @@
 
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
             </div>
         </div>
 
@@ -1114,10 +1182,10 @@
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
 
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -1128,10 +1196,9 @@
                     <span> All at</span> <span class="target">Values</span>
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
+
             </div>
         </div>
 
@@ -1142,10 +1209,10 @@
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
 
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span class="verb">Add</span>
                     <select class="selectField">
@@ -1157,10 +1224,9 @@
 
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
+
             </div>
         </div>
 
@@ -1171,18 +1237,17 @@
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
 
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span>Remove All at</span> <span class="target">Values</span>
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
+
             </div>
         </div>
 
@@ -1192,19 +1257,18 @@
 <div id="TemplateChange" class="col-12" style="padding: 2px 0px; display: none">
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
 
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span>Change </span> <span class="target">Visualization</span> to <span
                         class="attribute">Scatter</span>
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
+
             </div>
         </div>
 
@@ -1215,18 +1279,17 @@
     <p-badge styleClass="p-badge active" [style]="{'display': 'none'}"></p-badge>
     <p-badge styleClass="p-badge comparison" [style]="{'display': 'none'}"></p-badge>
 
-    <p-card>
+    <p-card [style]="{'background-color': 'lightgray'}">
         <div class="grid grid-nogutter" style="justify-content: space-between; padding-left: 20px;">
-            <div class="col-11" style="margin: auto 0">
+            <div class="col-10" style="margin: auto 0">
                 <p class="textField">
                     <span>Remove</span> items with <span class="target">Projects</span>
                     <span class="relation">lower than 50000</span>
                 </p>
             </div>
-            <div class="col-1">
-                <button pButton pRipple type="button" icon="pi pi-times"
-                    class="p-button-rounded p-button-danger p-button-sm closeButton"
-                    style="width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></button>
+            <div class="col-2">
+                <i class="pi pi-trash" style="cursor:pointer; width:15px !important; height: 15px !important;top: calc(50% - 7.5px);"></i>
+
             </div>
         </div>
 

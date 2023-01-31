@@ -189,10 +189,14 @@ export class VisualizationCanvasComponent {
       "resolve": { "scale": { "y": "independent" } }
 
     };
-
+    try{
     if (visualizationState['x-Axis'].length > 0 || visualizationState["Values"].length > 0 || visualizationState['Color'].length > 0) {
       vegaLiteSpecification.data.values = data
     }
+  }
+  catch{
+    console.log(visualizationState)
+  }
 
 
 
@@ -203,11 +207,14 @@ export class VisualizationCanvasComponent {
     var tooltip: any[] = []
     var width = 0;
     var size = 0;
-    var fontSizeLegend = type == "large" ? 11 : 6
-    var fontSizeTitle = type == "large" ? 11 : 8
-    var fontSizeLabel = type == "large" ? 11 : 3
+    var fontSizeLegend = type == "large" ? 11 : 4
+    var fontSizeTitle = type == "large" ? 10 : 5
+    var fontSizeLabel = type == "large" ? 9 : 3
     var symbolSize = type == "large" ? 100 : 20
     var markSize = type == "large" ? 30 : 6
+    var labelAngle = -50
+    var labelOverlap = false
+    var groupby = []
 
     var rowPadding = type == "large" ? 1 : 0
 
@@ -230,7 +237,7 @@ export class VisualizationCanvasComponent {
     if (visualizationState["VISUALIZATION"] == "bar") {
 
       if (visualizationState['x-Axis'].length >= 1) {
-        vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": "ordinal", "axis": { "labelPadding": 0, "labelOverlap": "true" , "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel} }
+        vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": "ordinal", "axis": { "labelPadding": 0, "labelOverlap": labelOverlap , "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel, 'labelAngle': labelAngle} }
 
         if (this.dataFieldsConfig[visualizationState['x-Axis'][0]] == "quantitative") {
           vegaLiteSpecification.encoding.x.type = "quantitative"
@@ -299,8 +306,8 @@ export class VisualizationCanvasComponent {
                 },
                 "encoding": {
 
-                  "y": { "field": visualizationState["Values"][i], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], "axis": { "labelOverlap": "true" , "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel} },
-                  "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], }),
+                  "y": { "field": visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "axis": { "labelOverlap": labelOverlap , "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel} },
+                  "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]] }),
                   "opacity": opacity,
                   "fillOpacity": fillOpacity,
 
@@ -313,12 +320,12 @@ export class VisualizationCanvasComponent {
             vegaLiteSpecification.layer.push(
               {
                 "mark": {
-                  "type": visualizationState["VISUALIZATION"], "size": size * 0.9, "xOffset": offSet
+                  "type": visualizationState["VISUALIZATION"], "size": size * 0.8, "xOffset": offSet
                 },
                 "encoding": {
 
-                  "y": { "field": visualizationState["Values"][i], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], "axis": { "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel} },
-                  "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], }),
+                  "y": { "field":  visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "axis": { "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel} },
+                  "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]] }),
                   "opacity": opacity,
                   "fillOpacity": fillOpacity,
 
@@ -332,11 +339,11 @@ export class VisualizationCanvasComponent {
           vegaLiteSpecification.layer.push(
             {
               "mark": {
-                "type": visualizationState["VISUALIZATION"], "size": size * 0.9, "xOffset": offSet
+                "type": visualizationState["VISUALIZATION"], "size": size * 0.8, "xOffset": offSet
               },
               "encoding": {
 
-                "y": { "field": visualizationState["Values"][i], "axis": { "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
+                "y": { "field": visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "axis": { "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
                 "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState["Values"][i], "type": "nominal", "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], })
 
               }
@@ -356,10 +363,10 @@ export class VisualizationCanvasComponent {
 
       if (visualizationState['x-Axis'].length >= 1) {
         if (this.dataFieldsConfig[visualizationState['x-Axis'][0]] == "quantitative") {
-          vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": this.dataFieldsConfig[visualizationState['x-Axis'][0]], "axis": { "labelPadding": 0, "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } }
+          vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": this.dataFieldsConfig[visualizationState['x-Axis'][0]], "axis": { "labelPadding": 0, "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel, 'labelAngle': labelAngle } }
         }
         else {
-          vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": "nominal", "axis": { "labelPadding": 0, "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } }
+          vegaLiteSpecification.encoding.x = { "field": visualizationState['x-Axis'][0], "type": "nominal", "axis": { "labelPadding": 0, "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel, 'labelAngle': labelAngle } }
 
         }
 
@@ -455,8 +462,8 @@ export class VisualizationCanvasComponent {
               "mark": mark,
               "encoding": {
 
-                "y": { "field": visualizationState["Values"][i], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], "axis": { "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
-                "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], }),
+                "y": { "field":  visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]], "axis": { "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
+                "tooltip": type != "large" ? [] : tooltip.concat({ "field":  visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "type": this.dataFieldsConfig[visualizationState["Values"][i]] }),
                 "opacity": opacity,
                 "strokeOpacity": strokeOpacity,
               },
@@ -472,7 +479,7 @@ export class VisualizationCanvasComponent {
               },
               "encoding": {
 
-                "y": { "field": visualizationState["Values"][i], "axis": { "labelOverlap": "true", "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
+                "y": { "field": visualizationState["Values"][i], "axis": { "labelOverlap": labelOverlap, "titleFontSize": fontSizeTitle, "labelFontSize": fontSizeLabel } },
                 "tooltip": type != "large" ? [] : tooltip.concat({ "field": visualizationState["Values"][i], "type": "nominal", "aggregate": visualizationState['Aggregate'][visualizationState["Values"][i]], })
 
               }
@@ -484,15 +491,51 @@ export class VisualizationCanvasComponent {
 
     }
 
+    
+    if(visualizationState['x-Axis'].length > 0){
+      groupby.push(visualizationState['x-Axis'][0])
+    }
+    if(visualizationState['Color'].length > 0){
+      groupby.push(visualizationState['Color'][0])
+    }
+
     vegaLiteSpecification.transform = [
       { "filter": { "field": "Party of Governor", "oneOf": visualizationState['FilterC']["Party of Governor"] } },
       { "filter": { "field": "Energy Type", "oneOf": visualizationState['FilterC']["Energy Type"] } },
       { "filter": { "field": "State", "oneOf": visualizationState['FilterC']["State"] } },
       { "filter": { "field": "Investment Type", "oneOf": visualizationState['FilterC']["Investment Type"] } },
       { "filter": { "field": "Year", "oneOf": visualizationState['FilterC']["Year"] } },
-      { "filter": { "field": "Amount Invested", "range": visualizationState['FilterN']["Amount Invested"] } },
-      { "filter": { "field": "Number of Projects", "range": visualizationState['FilterN']["Number of Projects"] } }
+
     ]
+    var aggregate = []
+    var values = Object.keys(this.dataFieldsConfig)
+    for(var i = 0; i < values.length; i++){
+      if(this.dataFieldsConfig[values[i]] == "quantitative"){
+        aggregate.push({
+          "op": visualizationState['Aggregate'][values[i]],
+          "field": values[i],
+          "as": visualizationState['Aggregate'][values[i]] + " of " + values[i]
+         }
+        )
+      }
+      
+    }
+    if(visualizationState["Values"].length > 0){
+      vegaLiteSpecification.transform.push(
+        {
+          "aggregate": aggregate,
+           "groupby": groupby
+        }
+      )
+    }
+    for(var i = 0; i < visualizationState["Values"].length; i++){
+      vegaLiteSpecification.transform.push(
+        { "filter": { "field":  visualizationState['Aggregate'][visualizationState["Values"][i]] + " of " + visualizationState["Values"][i], "range": visualizationState['FilterN'][visualizationState["Values"][i]] } },
+      )
+    }
+
+      
+
 
     if (visualizationState["Values"].length == 0 && visualizationState['x-Axis'].length > 0) {
       if (visualizationState['Color'].length == 0) {
@@ -532,7 +575,7 @@ export class VisualizationCanvasComponent {
 
       var width = result.view.getState()["signals"]["width"]
       if (visualizationState["Values"].length >= 1 ) {
-        if(type == "large" && Math.abs(width - this.baseWidth)/this.baseWidth > 0.1 && this.retry[target] < 3){
+        if(type == "large" && Math.abs(width - this.baseWidth)/this.baseWidth > 0.1 && this.retry[target] < 2){
           //console.log(this.baseWidth)
           //console.log(width)
           this.baseWidth = width
@@ -559,6 +602,7 @@ export class VisualizationCanvasComponent {
             for(var i = 0; i < visualizationState["Values"].length; i++){
               if(String(item["description"]).indexOf(visualizationState["Values"][i]) != -1){
                 that.infoVisInteraction.addAxisHighlight(that, visualizationState, visualizationState["Values"][i], true, null)
+                that.stateHandling.addAction(that, "Mouse")
               }
             }
             this.createVisualization(that, visualizationState, "#vis", "large");
@@ -577,6 +621,7 @@ export class VisualizationCanvasComponent {
             else {
               that.infoVisInteraction.removeLegendHighlight(that, visualizationState, ["ALL"], true, null)
             }
+            that.stateHandling.addAction(that, "Mouse")
             this.createVisualization(that, visualizationState, "#vis", "large");
           }.bind(this))
         }
@@ -589,26 +634,43 @@ export class VisualizationCanvasComponent {
           }
         }
 
-        var visibleColorElements = document.querySelector(".mark-group.role-scope")
+        var legendClass = ".mark-group.role-scope"
+        if (visualizationState['Color'].length > 0){
+          legendClass += "." + visualizationState['Color'][0].replace(" ", "_") + "_legend_entries"
+        }
+
+        var visibleColorElements = document.querySelector(legendClass)
         if(visibleColorElements){
           visualizationState["ColorElements"] = []
+          var clone = null
           for(var i = 0; i < visibleColorElements.children.length; i++){            
             var text = visibleColorElements.children[i].children[1].children[1].children[0].textContent
             visualizationState["ColorElements"].push(text)
 
-            var clone = document.getElementById('ColorHighlightTemplate').cloneNode(true);
+            clone = document.getElementById('ColorHighlightTemplate').cloneNode(true);
             clone["id"] = "ColorHighlight_" + text
 
             var bounds = visibleColorElements.children[i].getBoundingClientRect()
 
-            if(that.overallMode != 1){
-              clone["style"]["pointer-events"] = "none"
+            /*if(that.overallMode != 1){
+              clone.onclick = that.closeITLElement.bind(that);
+            }*/
+
+            if(visualizationState["ColorHighlight"].includes(text)){
+              clone.children[0]["style"]["display"] = "none"
+            }
+            else{
+              clone.children[1]["style"]["display"] = "none"
             }
 
-            clone["style"]["display"] = "block"
+            clone.onclick = that.handleLegendClick.bind(that);
+
+
+
+            clone["style"]["display"] = "flex"
             clone["style"]["top"] = bounds.top.toString() + "px"
-            clone["style"]["left"] = bounds.left.toString() + "px"
-            clone["style"]["width"] = bounds.width.toString() + "px"
+            clone["style"]["left"] = (bounds.left - 10).toString() + "px"
+            clone["style"]["width"] = (bounds.width + 10).toString() + "px"
             clone["style"]["height"] = bounds.height.toString() + "px"
             document.body.appendChild(clone)
           }
